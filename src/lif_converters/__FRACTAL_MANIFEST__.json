@@ -2,76 +2,109 @@
   "manifest_version": "2",
   "task_list": [
     {
-      "name": "Thresholding Label Task",
-      "executable_parallel": "thresholding_label_task.py",
-      "meta_parallel": {
+      "name": "Lif Converter Task",
+      "executable_non_parallel": "lif_plate_converter_init_task.py",
+      "executable_parallel": "lif_plate_converter_compute_task.py",
+      "meta_non_parallel": {
         "cpus_per_task": 1,
         "mem": 4000
       },
-      "args_schema_parallel": {
-        "$defs": {
-          "ChannelInputModel": {
-            "description": "A channel which is specified by either `wavelength_id` or `label`.",
-            "properties": {
-              "wavelength_id": {
-                "title": "Wavelength Id",
-                "type": "string",
-                "description": "Unique ID for the channel wavelength, e.g. `A01_C01`. Can only be specified if label is not set."
-              },
-              "label": {
-                "title": "Label",
-                "type": "string",
-                "description": "Name of the channel. Can only be specified if wavelength_id is not set."
-              }
+      "meta_parallel": {
+        "cpus_per_task": 1,
+        "mem": 12000
+      },
+      "args_schema_non_parallel": {
+        "additionalProperties": false,
+        "properties": {
+          "zarr_urls": {
+            "items": {
+              "type": "string"
             },
-            "title": "ChannelInputModel",
-            "type": "object"
+            "title": "Zarr Urls",
+            "type": "array",
+            "description": "List of zarr urls."
+          },
+          "zarr_dir": {
+            "title": "Zarr Dir",
+            "type": "string",
+            "description": "Output path to save the OME-Zarr file."
+          },
+          "lif_files_path": {
+            "title": "Lif Files Path",
+            "type": "string",
+            "description": "Input path to the LIF file, or a folder containing LIF files."
+          },
+          "num_levels": {
+            "default": 5,
+            "title": "Num Levels",
+            "description": "The number of resolution levels. Defaults to 5."
+          },
+          "coarsening_xy": {
+            "default": 2.0,
+            "title": "Coarsening Xy",
+            "description": "The scaling factor for the xy axes. Defaults to 2.0."
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean",
+            "description": "If True, the zarr store will be overwritten."
           }
         },
+        "required": [
+          "zarr_urls",
+          "zarr_dir",
+          "lif_files_path"
+        ],
+        "type": "object",
+        "title": "LifPlateConverterInitTask"
+      },
+      "args_schema_parallel": {
         "additionalProperties": false,
         "properties": {
           "zarr_url": {
             "title": "Zarr Url",
             "type": "string",
-            "description": "Absolute path to the OME-Zarr image."
+            "description": "The path to the zarr store."
           },
-          "threshold": {
-            "title": "Threshold",
-            "type": "integer",
-            "description": "Threshold value to be applied."
-          },
-          "channel": {
-            "$ref": "#/$defs/ChannelInputModel",
-            "title": "Channel",
-            "description": "Channel to be thresholded."
-          },
-          "label_name": {
-            "title": "Label Name",
+          "lif_path": {
+            "title": "Lif Path",
             "type": "string",
-            "description": "Name of the resulting label image"
+            "description": "The path to the LIF file."
           },
-          "min_size": {
-            "default": 50,
-            "title": "Min Size",
+          "scene_name": {
+            "title": "Scene Name",
+            "type": "string",
+            "description": "The name of the scene to convert."
+          },
+          "num_levels": {
+            "title": "Num Levels",
             "type": "integer",
-            "description": "Minimum size of objects. Smaller objects are filtered out."
+            "description": "The number of resolution levels."
+          },
+          "coarsening_xy": {
+            "title": "Coarsening Xy",
+            "type": "number",
+            "description": "The scaling factor for the xy axes."
           },
           "overwrite": {
-            "default": true,
             "title": "Overwrite",
             "type": "boolean",
-            "description": "Whether to overwrite an existing label image"
+            "description": "If True, the zarr store will be overwritten."
           }
         },
         "required": [
           "zarr_url",
-          "threshold",
-          "channel"
+          "lif_path",
+          "scene_name",
+          "num_levels",
+          "coarsening_xy",
+          "overwrite"
         ],
         "type": "object",
-        "title": "ThresholdingLabelTask"
+        "title": "LifPlateConverterComputeTask"
       },
-      "docs_info": "## thresholding_label_task\nThreshold an image and find connected components.\n"
+      "docs_info": "## lif_plate_converter_init_task\nInitialize the conversion of LIF files to OME-Zarr.\n## lif_plate_converter_compute_task\nConvert a single acquisition (well) in inside an OME-Zarr plate.\n"
     }
   ],
   "has_args_schemas": true,
