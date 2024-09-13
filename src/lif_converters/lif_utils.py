@@ -74,6 +74,7 @@ def compute_overalap_ratio(rois: list[dict]) -> float:
 
 
 def find_well_roi(fov_rois: list[dict]) -> dict:
+    """Create a bounding box for the well from the fov rois."""
     min_x, min_y, min_z = np.inf, np.inf, np.inf
     max_x, max_y, max_z = -np.inf, -np.inf, -np.inf
     for roi in fov_rois:
