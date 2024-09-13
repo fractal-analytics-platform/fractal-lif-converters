@@ -4,9 +4,12 @@ from pathlib import Path
 
 import bioio_lif
 from bioio import BioImage
+from fractal_tasks_core.utils import logger
 from pydantic import validate_call
 
-from lif_converters.converter_utils import (
+from lif_converters.utils import (
+    LifFormatNotSupported,
+    TimeSeriesNotSupported,
     setup_plate_ome_zarr,
 )
 
@@ -58,7 +61,7 @@ def lif_plate_converter_init_task(
         try:
             # TODO create an error for time series
             if img_bio.dims.T > 1:
-                raise ValueError("Time series not supported yet")
+                raise TimeSeriesNotSupported("Time dimension greater than 1")
 
             setup_plate_ome_zarr(
                 zarr_path=zarr_path,
@@ -81,10 +84,12 @@ def lif_plate_converter_init_task(
                 }
                 parallelization_list.append(task_kwargs)
 
-        except ValueError:
-            # Todo create more specific errors
-            print(f"Error in {lif_path}, skipping it")
+        except TimeSeriesNotSupported as e:
+            logger.warning(f"skipping {lif_path}: {e}")
             continue
+
+        except LifFormatNotSupported as e:
+            logger.warning(f"skipping {lif_path}: {e}")
 
     return {"parallelization_list": parallelization_list}
 

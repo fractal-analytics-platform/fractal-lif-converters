@@ -14,6 +14,8 @@ from fractal_tasks_core.ngff.specs import (
     WellInPlate,
 )
 
+from lif_converters.utils import LifFormatNotSupported
+
 
 def column_formatting(column: int | str) -> str:
     """Standard formatting for column names"""
@@ -139,8 +141,8 @@ class PlateScene:
         for scene in image.scenes:
             scene_elements = scene.split("/")
             if len(scene_elements) != 3:
-                raise ValueError(
-                    "Scene name is not in the expected format,"
+                raise LifFormatNotSupported(
+                    "Scene name is not in the expected format for a Plate,"
                     f"expected: 'Tile/Row/Column' got {scene}"
                 )
 

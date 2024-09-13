@@ -3,6 +3,8 @@
 import numpy as np
 from readlif.reader import LifFile, LifImage
 
+from lif_converters.utils import LifFormatNotSupported
+
 
 def find_shape_um(image: LifImage) -> tuple[float, float, float]:
     """Find the shape of the each tile in the scene in um."""
@@ -67,8 +69,8 @@ def compute_overalap_ratio(rois: list[dict]) -> float:
 
     # check if all offsets are the same more or less
     if not np.allclose(list_overlap, list_overlap[0], atol=0.1):
-        raise ValueError(
-            "Overlapping ratio is not the same for all tiles, " "this is not supported."
+        raise LifFormatNotSupported(
+            "Overlapping ratio is not the same for all tiles, this is not supported."
         )
     return list_overlap[0]
 
@@ -117,7 +119,7 @@ def build_grid_mapping(
     image = image_file.get_image(index_tile)
 
     if len(image.mosaic_position) == 0:
-        raise ValueError("Tile is not a mosaic. Cannot build grid mapping.")
+        raise LifFormatNotSupported("Tile is not a mosaic. Cannot build grid mapping.")
 
     rois = mosaic_to_overlapping_rois(image)
     overlap = compute_overalap_ratio(rois)
@@ -125,7 +127,9 @@ def build_grid_mapping(
     for i, roi in enumerate(rois):
         size, size_y, size_z = find_shape_um(image)
         if not np.allclose(size, size_y):
-            raise ValueError("Tile of different size in x and y are not supported.")
+            raise LifFormatNotSupported(
+                "Tile of different size in x and y are not supported."
+            )
 
         x, y, *_ = roi["bbox_um"]
         new_g_x = int(np.round((x / size) * overlap))

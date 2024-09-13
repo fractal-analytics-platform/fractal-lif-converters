@@ -13,9 +13,9 @@ from fractal_tasks_core.pyramids import build_pyramid
 from fractal_tasks_core.tables import write_table
 from pandas import DataFrame
 
-from lif_converters.lif_utils import build_grid_mapping
-from lif_converters.ngff_image_meta_utils import generate_ngff_metadata
-from lif_converters.ngff_plate_meta_utils import (
+from lif_converters.utils.lif_utils import build_grid_mapping
+from lif_converters.utils.ngff_image_meta_utils import generate_ngff_metadata
+from lif_converters.utils.ngff_plate_meta_utils import (
     PlateScene,
     build_acquisition_path,
     build_well_path,

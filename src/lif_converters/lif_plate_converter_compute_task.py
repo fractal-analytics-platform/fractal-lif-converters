@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import validate_call
 
-from lif_converters.converter_utils import export_plate_acquisition_to_zarr
+from lif_converters.utils.converter_utils import export_plate_acquisition_to_zarr
 
 
 @validate_call
@@ -34,6 +34,7 @@ def lif_plate_converter_compute_task(
         tile_name=scene_name,
         num_levels=num_levels,
         coarsening_xy=coarsening_xy,
+        overwrite=overwrite,
     )
 
     return {
