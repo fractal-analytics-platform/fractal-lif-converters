@@ -44,14 +44,14 @@ def generate_omero_metadata(img_bio: BioImage) -> dict:
 
 
 def generate_multiscale_metadata(
-    img_bio: BioImage, num_levels: int = 5, xy_scaling: float = 2.0
+    img_bio: BioImage, num_levels: int = 5, coarsening_xy: float = 2.0
 ) -> Multiscale:
     """Create the multiscale metadata for a BioImage object.
 
     Args:
         img_bio (BioImage): BioImage object to extract metadata
         num_levels (int): Number of resolution levels
-        xy_scaling (float): Scaling factor for the xy axes
+        coarsening_xy (float): Scaling factor for the xy axes
 
     Returns:
         Multiscale: Multiscale metadata
@@ -85,8 +85,8 @@ def generate_multiscale_metadata(
         scale_transform = ScaleCoordinateTransformation(type="scale", scale=scale)
         dataset = Dataset(path=f"{i}", coordinateTransformations=[scale_transform])
         list_datasets.append(dataset)
-        scale[-1] *= xy_scaling
-        scale[-2] *= xy_scaling
+        scale[-1] *= coarsening_xy
+        scale[-2] *= coarsening_xy
 
     multiscale = Multiscale(
         axes=axes, datasets=list_datasets, version=__OME_NGFF_VERSION__
@@ -95,20 +95,20 @@ def generate_multiscale_metadata(
 
 
 def generate_ngff_metadata(
-    img_bio: BioImage, num_levels: int = 5, xy_scaling: float = 2.0
+    img_bio: BioImage, num_levels: int = 5, coarsening_xy: float = 2.0
 ) -> NgffImageMeta:
     """Create the NGFF metadata for a BioImage object.
 
     Args:
         img_bio (BioImage): BioImage object to extract metadata
-        n_levels (int): Number of resolution levels
-        xy_scaling (float): Scaling factor for the xy axes
+        num_levels (int): Number of resolution levels
+        coarsening_xy (float): Scaling factor for the xy axes
 
     Returns:
         NgffImageMeta: NGFF metadata
     """
     multiscale = generate_multiscale_metadata(
-        img_bio, n_levels=num_levels, xy_scaling=xy_scaling
+        img_bio, num_levels=num_levels, coarsening_xy=coarsening_xy
     )
 
     omero = generate_omero_metadata(img_bio)

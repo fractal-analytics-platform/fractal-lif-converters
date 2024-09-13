@@ -1,3 +1,5 @@
+"""Utility functions for the lif file format."""
+
 import numpy as np
 from readlif.reader import LifFile, LifImage
 

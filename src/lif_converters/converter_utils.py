@@ -1,4 +1,4 @@
-"""Utility functions for the lif converters."""
+"""High Leve utility functions for the lif converters."""
 
 from itertools import product
 from pathlib import Path
@@ -10,13 +10,14 @@ import zarr
 from bioio import BioImage
 from fractal_tasks_core.pyramids import build_pyramid
 
-from lif_converters.bioio_image_utils import PlateScene, scene_plate_iterate
 from lif_converters.lif_utils import build_grid_mapping
 from lif_converters.ngff_image_meta_utils import generate_ngff_metadata
 from lif_converters.ngff_plate_meta_utils import (
+    PlateScene,
     build_acquisition_path,
     generate_plate_metadata,
     generate_wells_metadata,
+    scene_plate_iterate,
 )
 
 
@@ -24,7 +25,7 @@ def setup_plate_ome_zarr(
     zarr_path: str | Path,
     img_bio: BioImage,
     num_levels: int = 5,
-    xy_scaling: float = 2.0,
+    coarsening_xy: float = 2.0,
     overwrite=True,
 ):
     """Setup the zarr structure for the plate, wells and acquisitions metadata.
@@ -32,9 +33,9 @@ def setup_plate_ome_zarr(
     Args:
         zarr_path (str, Path): The path to the zarr store.
         img_bio (BioImage): The BioImage object.
-        num_levels (int, optional): The number of resolution levels. Defaults to 5.
-        xy_scaling (float, optional): The scaling factor for the xy axes. Defaults to 2.0.
-        overwrite (bool, optional): If True, the zarr store will be overwritten.
+        num_levels (int): The number of resolution levels. Defaults to 5.
+        coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
+        overwrite (bool): If True, the zarr store will be overwritten.
             Defaults to True.
     """
     plate_group = zarr.group(store=zarr_path, overwrite=overwrite)
@@ -53,7 +54,7 @@ def setup_plate_ome_zarr(
         img_bio.set_scene(scene.scene)
         img_bio.reader._read_immediate()
         ngff_meta = generate_ngff_metadata(
-            img_bio=img_bio, n_levels=num_levels, xy_scaling=xy_scaling
+            img_bio=img_bio, num_levels=num_levels, coarsening_xy=coarsening_xy
         )
         acquisition_path = build_acquisition_path(
             row=scene.row, column=scene.column, acquisition=scene.acquisition_id
@@ -69,7 +70,7 @@ def export_plate_acquisition_to_zarr(
     lif_path: Path,
     tile_name: str,
     num_levels: int = 5,
-    coarsening_xy: int = 2,
+    coarsening_xy: int | float = 2,
 ):
     """This function creates the high resolution data and the pyramid for the image.
 
@@ -79,8 +80,8 @@ def export_plate_acquisition_to_zarr(
         zarr_path (Path): The path to the zarr store (plate root).
         lif_path (Path): The path to the lif file.
         tile_name (str): The name of the scene (as stored in the lif file).
-        num_levels (int, optional): The number of resolution levels. Defaults to 5.
-        coarsening_xy (int, optional): The coarsening factor for the xy axes. Defaults
+        num_levels (int): The number of resolution levels. Defaults to 5.
+        coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
 
     """
     # Check if the zarr file exists
@@ -163,6 +164,7 @@ def export_plate_acquisition_to_zarr(
             high_res_array[slices] = frame
 
     # Build the pyramid for the high resolution data
+    coarsening_xy = int(coarsening_xy)
     full_res_path = f"{zarr_path}/{acquisition_path}"
     build_pyramid(
         zarrurl=full_res_path, num_levels=num_levels, coarsening_xy=coarsening_xy
