@@ -72,6 +72,7 @@ def export_plate_acquisition_to_zarr(
     tile_name: str,
     num_levels: int = 5,
     coarsening_xy: int | float = 2,
+    overwrite: bool = True,
 ) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
 
@@ -83,6 +84,7 @@ def export_plate_acquisition_to_zarr(
         tile_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
+        overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
     # Check if the zarr file exists
@@ -91,6 +93,8 @@ def export_plate_acquisition_to_zarr(
 
     if not lif_path.exists():
         raise FileNotFoundError(f"Lif file not found: {lif_path}")
+
+    mode = "w" if overwrite else "r+"
 
     # Setup the bioio Image
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
@@ -139,6 +143,7 @@ def export_plate_acquisition_to_zarr(
         dtype=img_bio.dtype,
         dimension_separator="/",
         chunks=chunk_shape,
+        mode=mode,
     )
 
     # The (i, j) needs to be reversed
@@ -174,7 +179,7 @@ def export_plate_acquisition_to_zarr(
         coarsening_xy=coarsening_xy,
     )
 
-    image_zarr_group = zarr.open_group(acquisition_image_path)
+    image_zarr_group = zarr.open_group(acquisition_image_path, mode=mode)
 
     # Create FOV rois Table
     foi_df = DataFrame.from_records(fov_rois)
@@ -206,11 +211,6 @@ def export_plate_acquisition_to_zarr(
         table_name="well_ROI_table",
         table_type="roi_table",
     )
-
-    if dim.z > 1:
-        is_3D = True
-    else:
-        is_3D = False
 
     types = {
         "is_3D": True if dim.z > 1 else False,

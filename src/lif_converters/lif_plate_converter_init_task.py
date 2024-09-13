@@ -5,13 +5,16 @@ from pathlib import Path
 import bioio_lif
 from bioio import BioImage
 from pydantic import validate_call
-from src.lif_converters.converter_utils import (
+
+from lif_converters.converter_utils import (
     setup_plate_ome_zarr,
 )
 
 
 @validate_call
 def lif_plate_converter_init_task(
+    # Fractal parameters
+    zarr_urls: list[str],
     zarr_dir: str,
     lif_files_path: str,
     num_levels=5,
@@ -21,6 +24,7 @@ def lif_plate_converter_init_task(
     """Initialize the conversion of LIF files to OME-Zarr.
 
     Args:
+        zarr_urls (list[str]): List of zarr urls.
         zarr_dir (str): Output path to save the OME-Zarr file.
         lif_files_path (str): Input path to the LIF file,
             or a folder containing LIF files.
@@ -35,10 +39,12 @@ def lif_plate_converter_init_task(
     if not lif_files_path.exists():
         raise FileNotFoundError(f"{lif_files_path} does not exist")
 
-    if not lif_files_path.is_dir():
+    if lif_files_path.is_dir():
         all_lif_files = list(lif_files_path.glob("*.lif"))
-    elif lif_files_path.isfile():
+    elif lif_files_path.is_file():
         all_lif_files = [lif_files_path]
+    else:
+        raise ValueError(f"{lif_files_path} is not a file or a folder")
 
     parallelization_list = []
 
@@ -70,7 +76,7 @@ def lif_plate_converter_init_task(
                         "scene_name": scene_name,
                         "num_levels": num_levels,
                         "coarsening_xy": coarsening_xy,
-                        "overwirtte": overwrite,
+                        "overwrite": overwrite,
                     },
                 }
                 parallelization_list.append(task_kwargs)
