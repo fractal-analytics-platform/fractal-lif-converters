@@ -3,18 +3,22 @@
 from itertools import product
 from pathlib import Path
 
+import anndata as ad
 import bioio_lif
 import numpy as np
 import readlif
 import zarr
 from bioio import BioImage
 from fractal_tasks_core.pyramids import build_pyramid
+from fractal_tasks_core.tables import write_table
+from pandas import DataFrame
 
 from lif_converters.lif_utils import build_grid_mapping
 from lif_converters.ngff_image_meta_utils import generate_ngff_metadata
 from lif_converters.ngff_plate_meta_utils import (
     PlateScene,
     build_acquisition_path,
+    build_well_path,
     generate_plate_metadata,
     generate_wells_metadata,
     scene_plate_iterate,
@@ -38,12 +42,9 @@ def setup_plate_ome_zarr(
         overwrite (bool): If True, the zarr store will be overwritten.
             Defaults to True.
     """
+    plate_metadata = generate_plate_metadata(img_bio)
     plate_group = zarr.group(store=zarr_path, overwrite=overwrite)
-    plate_group.attrs.update(
-        generate_plate_metadata(img_bio).model_dump(exclude_none=True)
-    )
-
-    print("plate_group.attrs", dict(plate_group.attrs))
+    plate_group.attrs.update(plate_metadata.model_dump(exclude_none=True))
 
     wells_meta = generate_wells_metadata(img_bio)
     for path, well in wells_meta.items():
@@ -71,7 +72,7 @@ def export_plate_acquisition_to_zarr(
     tile_name: str,
     num_levels: int = 5,
     coarsening_xy: int | float = 2,
-):
+) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
 
     Note that the image is assumed to be a part of a plate.
@@ -99,7 +100,6 @@ def export_plate_acquisition_to_zarr(
 
     # Find idx of the scene in the image list from the raw readlif Image
     img = readlif.reader.LifFile(lif_path)
-    grid_mapping = build_grid_mapping(img)
     names_order = [meta["name"] for meta in img.image_list]
     idx = names_order.index(scene.scene)
     image = img.get_image(idx)
@@ -112,7 +112,7 @@ def export_plate_acquisition_to_zarr(
     full_acquisition_path = f"{zarr_path}/{acquisition_path}"
     full_high_res_path = f"{full_acquisition_path}/0"
 
-    grid = grid_mapping[scene.scene]
+    grid, fov_rois, well_roi = build_grid_mapping(img, scene.scene)
     grid_size_y, grid_size_x = np.max(grid, axis=0) + 1
 
     dim = image.dims
@@ -141,6 +141,8 @@ def export_plate_acquisition_to_zarr(
         chunks=chunk_shape,
     )
 
+    # The (i, j) needs to be reversed
+    # (image internal representation is xy anz zarr is yx)
     for m, (j, i) in enumerate(grid):
         for _t, _c, _z in product(range(dim.t), range(num_channels), range(dim.z)):
             frame = image.get_frame(t=_t, c=_c, z=_z, m=m)
@@ -165,7 +167,58 @@ def export_plate_acquisition_to_zarr(
 
     # Build the pyramid for the high resolution data
     coarsening_xy = int(coarsening_xy)
-    full_res_path = f"{zarr_path}/{acquisition_path}"
+    acquisition_image_path = f"{zarr_path}/{acquisition_path}"
     build_pyramid(
-        zarrurl=full_res_path, num_levels=num_levels, coarsening_xy=coarsening_xy
+        zarrurl=acquisition_image_path,
+        num_levels=num_levels,
+        coarsening_xy=coarsening_xy,
     )
+
+    image_zarr_group = zarr.open_group(acquisition_image_path)
+
+    # Create FOV rois Table
+    foi_df = DataFrame.from_records(fov_rois)
+    foi_df = foi_df.set_index("FieldIndex")
+    # transform the FieldIndex to the index of the table
+
+    foi_df.index = foi_df.index.astype(str)
+    foi_df = foi_df.astype(np.float32)
+    foi_ad = ad.AnnData(foi_df)
+
+    write_table(
+        image_group=image_zarr_group,
+        table=foi_ad,
+        table_name="FOV_ROI_table",
+        table_type="roi_table",
+    )
+
+    # Create Well ROI Table
+    well_df = DataFrame.from_records([well_roi])
+    well_df = well_df.set_index("FieldIndex")
+
+    well_df.index = well_df.index.astype(str)
+    well_df = well_df.astype(np.float32)
+    well_ad = ad.AnnData(well_df)
+
+    write_table(
+        image_group=image_zarr_group,
+        table=well_ad,
+        table_name="well_ROI_table",
+        table_type="roi_table",
+    )
+
+    if dim.z > 1:
+        is_3D = True
+    else:
+        is_3D = False
+
+    types = {
+        "is_3D": True if dim.z > 1 else False,
+    }
+
+    attributes = {
+        "plate": "TODO",
+        "well": build_well_path(scene.row, scene.column),
+    }
+
+    return str(acquisition_image_path), types, attributes

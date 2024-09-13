@@ -73,20 +73,78 @@ def compute_overalap_ratio(rois: list[dict]) -> float:
     return list_overlap[0]
 
 
-def build_grid_mapping(image_file: LifFile) -> dict:
-    """Find the appropriate grid mapping for the scene."""
-    grid_mapping = {}
-    for image in image_file.get_iter_image():
-        tile_name = image.name
-        rois = mosaic_to_overlapping_rois(image)
-        overlap = compute_overalap_ratio(rois)
-        new_grid = []
-        for roi in rois:
-            size, *_ = find_shape_um(image)
-            x, y, *_ = roi["bbox_um"]
-            new_g_x = int(np.round((x / size) * overlap))
-            new_g_y = int(np.round((y / size) * overlap))
-            new_grid.append((new_g_x, new_g_y))
+def find_well_roi(fov_rois: list[dict]) -> dict:
+    min_x, min_y, min_z = np.inf, np.inf, np.inf
+    max_x, max_y, max_z = -np.inf, -np.inf, -np.inf
+    for roi in fov_rois:
+        x, y, z = roi["x_micrometer"], roi["y_micrometer"], roi["z_micrometer"]
+        len_x, len_y, len_z = (
+            roi["len_x_micrometer"],
+            roi["len_y_micrometer"],
+            roi["len_z_micrometer"],
+        )
+        min_x = min(min_x, x)
+        min_y = min(min_y, y)
+        min_z = min(min_z, z)
 
-        grid_mapping[tile_name] = new_grid
-    return grid_mapping
+        max_x = max(max_x, x + len_x)
+        max_y = max(max_y, y + len_y)
+        max_z = max(max_z, z + len_z)
+
+    well_roi = {
+        "FieldIndex": "Well_1",
+        "x_micrometer": min_x,
+        "y_micrometer": min_y,
+        "z_micrometer": min_z,
+        "len_x_micrometer": max_x - min_x,
+        "len_y_micrometer": max_y - min_y,
+        "len_z_micrometer": max_z - min_z,
+    }
+    return well_roi
+
+
+def build_grid_mapping(
+    image_file: LifFile, tile_name: str
+) -> tuple[list, list[dict], dict]:
+    """Find the appropriate grid mapping for the scene."""
+    list_tiles_names = [meta["name"] for meta in image_file.image_list]
+
+    if tile_name not in list_tiles_names:
+        raise ValueError(f"Tile {tile_name} not found in the image file.")
+
+    index_tile = list_tiles_names.index(tile_name)
+    image = image_file.get_image(index_tile)
+
+    if len(image.mosaic_position) == 0:
+        raise ValueError("Tile is not a mosaic. Cannot build grid mapping.")
+
+    rois = mosaic_to_overlapping_rois(image)
+    overlap = compute_overalap_ratio(rois)
+    new_grid, fov_rois = [], []
+    for i, roi in enumerate(rois):
+        size, size_y, size_z = find_shape_um(image)
+        if not np.allclose(size, size_y):
+            raise ValueError("Tile of different size in x and y are not supported.")
+
+        x, y, *_ = roi["bbox_um"]
+        new_g_x = int(np.round((x / size) * overlap))
+        new_g_y = int(np.round((y / size) * overlap))
+        new_grid.append((new_g_x, new_g_y))
+
+        new_x, new_y, new_z = new_g_x * size, new_g_y * size, 0
+
+        fov_roi = {
+            "FieldIndex": f"FOV_{i}",
+            "x_micrometer": new_y,
+            "y_micrometer": new_x,
+            "z_micrometer": new_z,
+            "len_x_micrometer": size,
+            "len_y_micrometer": size,
+            "len_z_micrometer": size_z,
+            "x_micrometer_original": y,
+            "y_micrometer_original": x,
+        }
+        fov_rois.append(fov_roi)
+
+    well_roi = find_well_roi(fov_rois)
+    return new_grid, fov_rois, well_roi
