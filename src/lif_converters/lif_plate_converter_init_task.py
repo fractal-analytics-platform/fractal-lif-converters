@@ -24,7 +24,7 @@ def lif_plate_converter_init_task(
     coarsening_xy=2.0,
     overwrite: bool = False,
 ):
-    """Initialize the conversion of LIF files to OME-Zarr.
+    """Initialize the conversion of LIF files to an OME-Zarr - Plate.
 
     Args:
         zarr_urls (list[str]): List of zarr urls.
