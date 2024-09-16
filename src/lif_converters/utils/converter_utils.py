@@ -305,7 +305,7 @@ def export_ngff_single_scene(
         img_bio=img_bio, num_levels=num_levels, coarsening_xy=coarsening_xy
     )
 
-    ngff_group = zarr.group(store=zarr_url, mode="a" if overwrite else "r+")
+    ngff_group = zarr.group(store=zarr_url, overwrite=overwrite)
     ngff_group.attrs.update(ngff_meta.model_dump(exclude_none=True))
 
     # Create the high resolution data and the pyramid for the image
