@@ -37,11 +37,13 @@
           "num_levels": {
             "default": 5,
             "title": "Num Levels",
+            "type": "integer",
             "description": "The number of resolution levels. Defaults to 5."
           },
           "coarsening_xy": {
-            "default": 2.0,
+            "default": 2,
             "title": "Coarsening Xy",
+            "type": "integer",
             "description": "The scaling factor for the xy axes. Defaults to 2.0."
           },
           "overwrite": {
@@ -158,9 +160,9 @@
             "description": "The number of resolution levels. Defaults to 5."
           },
           "coarsening_xy": {
-            "default": 2.0,
+            "default": 2,
             "title": "Coarsening Xy",
-            "type": "number",
+            "type": "integer",
             "description": "The scaling factor for the xy axes. Defaults to 2.0."
           },
           "overwrite": {
