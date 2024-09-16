@@ -84,6 +84,9 @@ def lif_plate_converter_init_task(
                     },
                 }
                 parallelization_list.append(task_kwargs)
+                logger.info(
+                    f"{lif_path} - {scene_name} added to the parallelization list."
+                )
 
         except TimeSeriesNotSupported as e:
             logger.warning(f"skipping {lif_path}: {e}")
@@ -92,6 +95,7 @@ def lif_plate_converter_init_task(
         except LifFormatNotSupported as e:
             logger.warning(f"skipping {lif_path}: {e}")
 
+    logger.info(f"Found {len(parallelization_list)} scenes to convert.")
     return {"parallelization_list": parallelization_list}
 
 
