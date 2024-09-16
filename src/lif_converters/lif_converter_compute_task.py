@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from pydantic import validate_call
+from fractal_tasks_core.utils import logger
 
 from lif_converters.utils.converter_utils import (
     export_ngff_plate_acquisition,

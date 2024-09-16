@@ -11,6 +11,7 @@ import zarr
 from bioio import BioImage
 from fractal_tasks_core.pyramids import build_pyramid
 from fractal_tasks_core.tables import write_table
+from fractal_tasks_core.utils import logger
 from pandas import DataFrame
 
 from lif_converters.utils.lif_utils import build_grid_mapping
@@ -63,6 +64,7 @@ def setup_plate_ome_zarr(
         acquisition_group = plate_group.create_group(acquisition_path)
         acquisition_group.attrs.update(ngff_meta.model_dump(exclude_none=True))
 
+    logger.info(f"Created zarr store at {zarr_path}")
     return plate_group
 
 
@@ -119,6 +121,8 @@ def _export_acquisition_to_zarr(
 
     if not lif_path.exists():
         raise FileNotFoundError(f"Lif file not found: {lif_path}")
+
+    logger.info(f"{zarr_url} - Converting {lif_path} scene {scene_name} start")
 
     # Setup the bioio Image
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
@@ -205,6 +209,10 @@ def _export_acquisition_to_zarr(
             num_levels=num_levels,
             coarsening_xy=int(coarsening_xy),
         )
+        logger.info(f"{zarr_url} - Pyramid created with {num_levels} levels")
+
+    else:
+        logger.info(f"{zarr_url} - No pyramid created")
 
     mode = "a" if overwrite else "r+"
     image_zarr_group = zarr.open_group(zarr_url, mode=mode)
@@ -216,6 +224,7 @@ def _export_acquisition_to_zarr(
             rois=fov_rois,
             table_name="FOV_ROI_table",
         )
+        logger.info(f"{zarr_url} - Created FOV_ROI_table")
 
     # Create Well ROI Table
     _write_rois_table(
@@ -223,10 +232,12 @@ def _export_acquisition_to_zarr(
         rois=[well_roi],
         table_name="well_ROI_table",
     )
+    logger.info(f"{zarr_url} - Created well_ROI_table")
 
     types = {
         "is_3D": True if dim.z > 1 else False,
     }
+    logger.info(f"{zarr_url} - {types['is_3D']=}")
 
     return types
 
@@ -252,6 +263,7 @@ def export_ngff_plate_acquisition(
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
+    logger.info(f"Converting {lif_path} scene {scene_name} as a plate acquisition")
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
     scene = PlateScene(scene_name=scene_name, image=img_bio)
     image_url = build_acquisition_path(
@@ -296,6 +308,7 @@ def export_ngff_single_scene(
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
+    logger.info(f"Converting {lif_path} scene {scene_name} as a single scene")
     # Crea ngff metadata
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
     img_bio.set_scene(scene_name)
