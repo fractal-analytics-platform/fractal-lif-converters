@@ -1,5 +1,7 @@
 """Utility functions for the lif file format."""
 
+from itertools import pairwise
+
 import numpy as np
 from readlif.reader import LifFile, LifImage
 
@@ -55,7 +57,7 @@ def compute_overalap_ratio(rois: list[dict]) -> float:
     size_x, size_y = rois[0]["bbox_um"][3], rois[0]["bbox_um"][4]
 
     list_overlap = []
-    for roi_0, roi_1 in zip(rois[:-1], rois[1:]):
+    for roi_0, roi_1 in pairwise(rois):
         roi_bbox_0, roi_bbox_1 = roi_0["bbox_um"], roi_1["bbox_um"]
         diff_x, diff_y = roi_bbox_1[0] - roi_bbox_0[0], roi_bbox_1[1] - roi_bbox_0[1]
         # Only one of the offsets should be non-zero
