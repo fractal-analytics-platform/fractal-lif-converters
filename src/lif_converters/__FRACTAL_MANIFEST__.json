@@ -182,7 +182,7 @@
             "description": "The scaling factor for the xy axes. Defaults to 2.0."
           },
           "overwrite": {
-            "default": true,
+            "default": false,
             "title": "Overwrite",
             "type": "boolean",
             "description": "If True, the zarr store will be overwritten."
