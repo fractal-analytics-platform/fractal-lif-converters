@@ -2,9 +2,9 @@
   "manifest_version": "2",
   "task_list": [
     {
-      "name": "Lif Plate Converter Task",
-      "executable_non_parallel": "lif_plate_converter_init_task.py",
-      "executable_parallel": "lif_converter_compute_task.py",
+      "name": "Convert Lif Plate to OME-Zarr",
+      "executable_non_parallel": "convert_lif_plate_init_task.py",
+      "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
         "cpus_per_task": 1,
         "mem": 4000
@@ -59,7 +59,7 @@
           "lif_files_path"
         ],
         "type": "object",
-        "title": "LifPlateConverterInitTask"
+        "title": "ConvertLifPlateInitTask"
       },
       "args_schema_parallel": {
         "$defs": {
@@ -123,14 +123,14 @@
           "init_args"
         ],
         "type": "object",
-        "title": "LifConverterComputeTask"
+        "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## lif_plate_converter_init_task\nInitialize the conversion of LIF files to an OME-Zarr - Plate.\n## lif_converter_compute_task\nConvert a single acquisition (well) in inside an OME-Zarr plate.\n"
+      "docs_info": "## convert_lif_plate_init_task\nInitialize the conversion of LIF files to an OME-Zarr - Plate.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n"
     },
     {
-      "name": "Lif Scene Converter Task",
-      "executable_non_parallel": "lif_scene_converter_init_task.py",
-      "executable_parallel": "lif_converter_compute_task.py",
+      "name": "Convert Lif Scene to OME-Zarr",
+      "executable_non_parallel": "convert_lif_scene_init_task.py",
+      "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
         "cpus_per_task": 1,
         "mem": 4000
@@ -190,7 +190,7 @@
           "lif_files_path"
         ],
         "type": "object",
-        "title": "LifSceneConverterInitTask"
+        "title": "ConvertLifSceneInitTask"
       },
       "args_schema_parallel": {
         "$defs": {
@@ -254,9 +254,9 @@
           "init_args"
         ],
         "type": "object",
-        "title": "LifConverterComputeTask"
+        "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## lif_scene_converter_init_task\nInitialize the conversion of LIF files to OME-Zarr - NgffImages.\n## lif_converter_compute_task\nConvert a single acquisition (well) in inside an OME-Zarr plate.\n"
+      "docs_info": "## convert_lif_scene_init_task\nInitialize the conversion of LIF files to OME-Zarr - NgffImages.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n"
     }
   ],
   "has_args_schemas": true,

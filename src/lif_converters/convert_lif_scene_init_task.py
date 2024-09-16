@@ -7,6 +7,7 @@ import bioio_lif
 from bioio import BioImage
 from fractal_tasks_core.utils import logger
 from pydantic import validate_call
+
 from lif_converters.convert_lif_compute_task import ComputeInputModel
 
 
@@ -48,7 +49,7 @@ def _create_parrallelization_list_entry(
 
 
 @validate_call
-def lif_scene_converter_init_task(
+def convert_lif_scene_init_task(
     *,
     # Fractal parameters
     zarr_urls: list[str],
@@ -115,4 +116,4 @@ def lif_scene_converter_init_task(
 if __name__ == "__main__":
     from fractal_tasks_core.tasks._utils import run_fractal_task
 
-    run_fractal_task(task_function=lif_scene_converter_init_task)
+    run_fractal_task(task_function=convert_lif_scene_init_task)

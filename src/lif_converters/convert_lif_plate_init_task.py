@@ -7,16 +7,16 @@ from bioio import BioImage
 from fractal_tasks_core.utils import logger
 from pydantic import validate_call
 
+from lif_converters.convert_lif_compute_task import ComputeInputModel
 from lif_converters.utils import (
     LifFormatNotSupported,
     TimeSeriesNotSupported,
     setup_plate_ome_zarr,
 )
-from lif_converters.convert_lif_compute_task import ComputeInputModel
 
 
 @validate_call
-def lif_plate_converter_init_task(
+def convert_lif_plate_init_task(
     *,
     # Fractal parameters
     zarr_urls: list[str],
@@ -104,4 +104,4 @@ def lif_plate_converter_init_task(
 if __name__ == "__main__":
     from fractal_tasks_core.tasks._utils import run_fractal_task
 
-    run_fractal_task(task_function=lif_plate_converter_init_task)
+    run_fractal_task(task_function=convert_lif_plate_init_task)

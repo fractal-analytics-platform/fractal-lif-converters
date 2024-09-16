@@ -1,6 +1,4 @@
-"""Generate JSON schemas for task arguments afresh, and write them
-to the package manifest.
-"""
+"""Generate JSON schemas for task arguments."""
 
 from fractal_tasks_core.dev.create_manifest import create_manifest
 

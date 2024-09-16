@@ -21,15 +21,14 @@ class ComputeInputModel(BaseModel):
     plate_mode: bool = True
 
 
-# Convert Lif Plate to OME-Zarr
 @validate_call
-def lif_converter_compute_task(
+def convert_lif_compute_task(
     *,
     # Fractal parameters
     zarr_url: str,
     init_args: ComputeInputModel,
 ):
-    """Convert a single acquisition (well) in inside an OME-Zarr plate.
+    """Export a single scene or plate acquisition from a LIF file to OME-Zarr.
 
     Args:
         zarr_url (str): The path to the zarr store.
@@ -63,4 +62,4 @@ def lif_converter_compute_task(
 if __name__ == "__main__":
     from fractal_tasks_core.tasks._utils import run_fractal_task
 
-    run_fractal_task(task_function=lif_converter_compute_task)
+    run_fractal_task(task_function=convert_lif_compute_task)
