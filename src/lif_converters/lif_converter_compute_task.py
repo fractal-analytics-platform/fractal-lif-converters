@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import validate_call
+from pydantic import BaseModel, Field, validate_call
 
 from lif_converters.utils.converter_utils import (
     export_ngff_plate_acquisition,
@@ -10,42 +10,47 @@ from lif_converters.utils.converter_utils import (
 )
 
 
+class ComputeInputModel(BaseModel):
+    """Input model for the lif_converter_compute_task."""
+
+    lif_path: str
+    scene_name: str
+    num_levels: int = Field(5, ge=0)
+    coarsening_xy: int = Field(2, ge=1)
+    overwrite: bool = False
+    plate_mode: bool = True
+
+
+# Convert Lif Plate to OME-Zarr
 @validate_call
 def lif_converter_compute_task(
     *,
     # Fractal parameters
     zarr_url: str,
-    # Task parameters
-    lif_path: str,
-    scene_name: str,
-    num_levels: int,
-    coarsening_xy: float,
-    overwrite: bool,
-    plate_mode: bool = True,
+    init_args: ComputeInputModel,
 ):
     """Convert a single acquisition (well) in inside an OME-Zarr plate.
 
     Args:
         zarr_url (str): The path to the zarr store.
-        lif_path (str): The path to the LIF file.
-        scene_name (str): The name of the scene to convert.
-        num_levels (int): The number of resolution levels.
-        coarsening_xy (float): The scaling factor for the xy axes.
-        overwrite (bool): If True, the zarr store will be overwritten.
-        plate_mode (bool): If True, the task will convert a plate, otherwise a scene.
+        init_args (ComputeInputModel): The input parameters for the conversion.
     """
     zarr_url = Path(zarr_url)
-    lif_path = Path(lif_path)
+    lif_path = Path(init_args.lif_path)
 
-    func = export_ngff_plate_acquisition if plate_mode else export_ngff_single_scene
+    func = (
+        export_ngff_plate_acquisition
+        if init_args.plate_mode
+        else export_ngff_single_scene
+    )
 
     new_zarr_url, types, attributes = func(
         zarr_url=zarr_url,
         lif_path=lif_path,
-        scene_name=scene_name,
-        num_levels=num_levels,
-        coarsening_xy=coarsening_xy,
-        overwrite=overwrite,
+        scene_name=init_args.scene_name,
+        num_levels=init_args.num_levels,
+        coarsening_xy=init_args.coarsening_xy,
+        overwrite=init_args.overwrite,
     )
 
     return {

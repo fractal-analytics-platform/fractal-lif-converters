@@ -15,7 +15,7 @@ def lif_plate_converter(
     zarr_dir: Path | str,
     lif_files_path: Path | str,
     num_levels: int = 5,
-    coarsening_xy: float = 2.0,
+    coarsening_xy: int = 2,
     overwrite: bool = False,
 ):
     """Convert LIF files to an OME-Zarr Ngff Plate.
@@ -30,7 +30,7 @@ def lif_plate_converter(
 
     """
     parallelization_list = lif_plate_converter_init_task(
-        [],
+        zarr_urls=[],
         zarr_dir=str(zarr_dir),
         lif_files_path=str(lif_files_path),
         num_levels=num_levels,
@@ -41,7 +41,7 @@ def lif_plate_converter(
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
         list_updates = lif_converter_compute_task(
-            zarr_url=task_args["zarr_url"], **task_args["init_args"]
+            zarr_url=task_args["zarr_url"], init_args=task_args["init_args"]
         )
         list_of_images.extend(list_updates["image_list_updates"])
 
@@ -69,7 +69,7 @@ def lif_scene_converter(
 
     """
     parallelization_list = lif_scene_converter_init_task(
-        [],
+        zarr_urls=[],
         zarr_dir=str(zarr_dir),
         lif_files_path=str(lif_files_path),
         scene_name=scene_name,
@@ -81,6 +81,6 @@ def lif_scene_converter(
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
         list_updates = lif_converter_compute_task(
-            zarr_url=task_args["zarr_url"], **task_args["init_args"]
+            zarr_url=task_args["zarr_url"], init_args=task_args["init_args"]
         )
         list_of_images.extend(list_updates["image_list_updates"])

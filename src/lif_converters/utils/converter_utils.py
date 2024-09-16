@@ -30,7 +30,7 @@ def setup_plate_ome_zarr(
     zarr_path: str | Path,
     img_bio: BioImage,
     num_levels: int = 5,
-    coarsening_xy: float = 2.0,
+    coarsening_xy: int | float = 2.0,
     overwrite=True,
 ):
     """Setup the zarr structure for the plate, wells and acquisitions metadata.
@@ -43,6 +43,8 @@ def setup_plate_ome_zarr(
         overwrite (bool): If True, the zarr store will be overwritten.
             Defaults to True.
     """
+    coarsening_xy = float(coarsening_xy)
+
     plate_metadata = generate_plate_metadata(img_bio)
     plate_group = zarr.group(store=zarr_path, overwrite=overwrite)
     plate_group.attrs.update(plate_metadata.model_dump(exclude_none=True))
@@ -99,7 +101,7 @@ def _export_acquisition_to_zarr(
     lif_path: Path,
     scene_name: str,
     num_levels: int = 5,
-    coarsening_xy: int | float = 2,
+    coarsening_xy: int = 2,
     overwrite: bool = True,
 ) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
@@ -196,13 +198,6 @@ def _export_acquisition_to_zarr(
     # Build the pyramid for the high resolution data
     # Check if coarsening_xy is an integer or a float with a decimal part of 0
     if num_levels > 1:
-        if coarsening_xy.is_integer():
-            coarsening_xy = int(coarsening_xy)
-        else:
-            raise ValueError(
-                "coarsening_xy must be an integer to build a multi-resolution pyramid"
-            )
-
         build_pyramid(
             zarrurl=zarr_url,
             num_levels=num_levels,

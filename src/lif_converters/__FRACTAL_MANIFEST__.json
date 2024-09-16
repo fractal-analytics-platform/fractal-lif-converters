@@ -62,6 +62,49 @@
         "title": "LifPlateConverterInitTask"
       },
       "args_schema_parallel": {
+        "$defs": {
+          "ComputeInputModel": {
+            "description": "Input model for the lif_converter_compute_task.",
+            "properties": {
+              "lif_path": {
+                "title": "Lif Path",
+                "type": "string"
+              },
+              "scene_name": {
+                "title": "Scene Name",
+                "type": "string"
+              },
+              "num_levels": {
+                "default": 5,
+                "minimum": 0,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "coarsening_xy": {
+                "default": 2,
+                "minimum": 1,
+                "title": "Coarsening Xy",
+                "type": "integer"
+              },
+              "overwrite": {
+                "default": false,
+                "title": "Overwrite",
+                "type": "boolean"
+              },
+              "plate_mode": {
+                "default": true,
+                "title": "Plate Mode",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "lif_path",
+              "scene_name"
+            ],
+            "title": "ComputeInputModel",
+            "type": "object"
+          }
+        },
         "additionalProperties": false,
         "properties": {
           "zarr_url": {
@@ -69,45 +112,15 @@
             "type": "string",
             "description": "The path to the zarr store."
           },
-          "lif_path": {
-            "title": "Lif Path",
-            "type": "string",
-            "description": "The path to the LIF file."
-          },
-          "scene_name": {
-            "title": "Scene Name",
-            "type": "string",
-            "description": "The name of the scene to convert."
-          },
-          "num_levels": {
-            "title": "Num Levels",
-            "type": "integer",
-            "description": "The number of resolution levels."
-          },
-          "coarsening_xy": {
-            "title": "Coarsening Xy",
-            "type": "number",
-            "description": "The scaling factor for the xy axes."
-          },
-          "overwrite": {
-            "title": "Overwrite",
-            "type": "boolean",
-            "description": "If True, the zarr store will be overwritten."
-          },
-          "plate_mode": {
-            "default": true,
-            "title": "Plate Mode",
-            "type": "boolean",
-            "description": "If True, the task will convert a plate, otherwise a scene."
+          "init_args": {
+            "$ref": "#/$defs/ComputeInputModel",
+            "title": "Init Args",
+            "description": "The input parameters for the conversion."
           }
         },
         "required": [
           "zarr_url",
-          "lif_path",
-          "scene_name",
-          "num_levels",
-          "coarsening_xy",
-          "overwrite"
+          "init_args"
         ],
         "type": "object",
         "title": "LifConverterComputeTask"
@@ -143,7 +156,6 @@
             "description": "Output path to save the OME-Zarr file."
           },
           "lif_files_path": {
-            "format": "path",
             "title": "Lif Files Path",
             "type": "string",
             "description": "Input path to the LIF file, or a folder containing LIF files."
@@ -181,6 +193,49 @@
         "title": "LifSceneConverterInitTask"
       },
       "args_schema_parallel": {
+        "$defs": {
+          "ComputeInputModel": {
+            "description": "Input model for the lif_converter_compute_task.",
+            "properties": {
+              "lif_path": {
+                "title": "Lif Path",
+                "type": "string"
+              },
+              "scene_name": {
+                "title": "Scene Name",
+                "type": "string"
+              },
+              "num_levels": {
+                "default": 5,
+                "minimum": 0,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "coarsening_xy": {
+                "default": 2,
+                "minimum": 1,
+                "title": "Coarsening Xy",
+                "type": "integer"
+              },
+              "overwrite": {
+                "default": false,
+                "title": "Overwrite",
+                "type": "boolean"
+              },
+              "plate_mode": {
+                "default": true,
+                "title": "Plate Mode",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "lif_path",
+              "scene_name"
+            ],
+            "title": "ComputeInputModel",
+            "type": "object"
+          }
+        },
         "additionalProperties": false,
         "properties": {
           "zarr_url": {
@@ -188,45 +243,15 @@
             "type": "string",
             "description": "The path to the zarr store."
           },
-          "lif_path": {
-            "title": "Lif Path",
-            "type": "string",
-            "description": "The path to the LIF file."
-          },
-          "scene_name": {
-            "title": "Scene Name",
-            "type": "string",
-            "description": "The name of the scene to convert."
-          },
-          "num_levels": {
-            "title": "Num Levels",
-            "type": "integer",
-            "description": "The number of resolution levels."
-          },
-          "coarsening_xy": {
-            "title": "Coarsening Xy",
-            "type": "number",
-            "description": "The scaling factor for the xy axes."
-          },
-          "overwrite": {
-            "title": "Overwrite",
-            "type": "boolean",
-            "description": "If True, the zarr store will be overwritten."
-          },
-          "plate_mode": {
-            "default": true,
-            "title": "Plate Mode",
-            "type": "boolean",
-            "description": "If True, the task will convert a plate, otherwise a scene."
+          "init_args": {
+            "$ref": "#/$defs/ComputeInputModel",
+            "title": "Init Args",
+            "description": "The input parameters for the conversion."
           }
         },
         "required": [
           "zarr_url",
-          "lif_path",
-          "scene_name",
-          "num_levels",
-          "coarsening_xy",
-          "overwrite"
+          "init_args"
         ],
         "type": "object",
         "title": "LifConverterComputeTask"

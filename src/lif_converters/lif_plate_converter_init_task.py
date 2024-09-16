@@ -12,6 +12,7 @@ from lif_converters.utils import (
     TimeSeriesNotSupported,
     setup_plate_ome_zarr,
 )
+from lif_converters.lif_converter_compute_task import ComputeInputModel
 
 
 @validate_call
@@ -75,14 +76,14 @@ def lif_plate_converter_init_task(
             for scene_name in img_bio.scenes:
                 task_kwargs = {
                     "zarr_url": str(zarr_path),
-                    "init_args": {
-                        "lif_path": str(lif_path),
-                        "scene_name": scene_name,
-                        "num_levels": num_levels,
-                        "coarsening_xy": coarsening_xy,
-                        "overwrite": overwrite,
-                        "plate_mode": True,
-                    },
+                    "init_args": ComputeInputModel(
+                        lif_path=str(lif_path),
+                        scene_name=scene_name,
+                        num_levels=num_levels,
+                        coarsening_xy=coarsening_xy,
+                        overwrite=overwrite,
+                        plate_mode=True,
+                    ),
                 }
                 parallelization_list.append(task_kwargs)
                 logger.info(

@@ -7,6 +7,7 @@ import bioio_lif
 from bioio import BioImage
 from fractal_tasks_core.utils import logger
 from pydantic import validate_call
+from lif_converters.lif_converter_compute_task import ComputeInputModel
 
 
 def _rename_scene(scene_name: str):
@@ -34,14 +35,14 @@ def _create_parrallelization_list_entry(
     )
     task_kwargs = {
         "zarr_url": str(zarr_url),
-        "init_args": {
-            "lif_path": str(lif_file_path),
-            "scene_name": scene_name,
-            "num_levels": num_levels,
-            "coarsening_xy": coarsening_xy,
-            "overwrite": overwrite,
-            "plate_mode": False,
-        },
+        "init_args": ComputeInputModel(
+            lif_path=str(lif_file_path),
+            scene_name=scene_name,
+            num_levels=num_levels,
+            coarsening_xy=coarsening_xy,
+            overwrite=overwrite,
+            plate_mode=False,
+        ),
     }
     return task_kwargs
 
@@ -53,7 +54,7 @@ def lif_scene_converter_init_task(
     zarr_urls: list[str],
     zarr_dir: str,
     # Task parameters
-    lif_files_path: Path,
+    lif_files_path: str,
     scene_name: Optional[str] = None,
     num_levels: int = 5,
     coarsening_xy: int = 2,
