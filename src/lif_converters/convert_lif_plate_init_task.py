@@ -5,7 +5,7 @@ from pathlib import Path
 import bioio_lif
 from bioio import BioImage
 from fractal_tasks_core.utils import logger
-from pydantic import validate_call
+from pydantic import Field, validate_call
 
 from lif_converters.convert_lif_compute_task import ComputeInputModel
 from lif_converters.utils import (
@@ -23,8 +23,8 @@ def convert_lif_plate_init_task(
     zarr_dir: str,
     # Task parameters
     lif_files_path: str,
-    num_levels: int = 5,
-    coarsening_xy: int = 2,
+    num_levels: int = Field(default=5, ge=0),
+    coarsening_xy: int = Field(default=2, ge=1),
     overwrite: bool = False,
 ):
     """Initialize the conversion of LIF files to an OME-Zarr - Plate.

@@ -6,7 +6,7 @@ from typing import Optional
 import bioio_lif
 from bioio import BioImage
 from fractal_tasks_core.utils import logger
-from pydantic import validate_call
+from pydantic import Field, validate_call
 
 from lif_converters.convert_lif_compute_task import ComputeInputModel
 
@@ -57,8 +57,8 @@ def convert_lif_scene_init_task(
     # Task parameters
     lif_files_path: str,
     scene_name: Optional[str] = None,
-    num_levels: int = 5,
-    coarsening_xy: int = 2,
+    num_levels: int = Field(default=5, ge=0),
+    coarsening_xy: int = Field(default=2, ge=1),
     overwrite: bool = True,
 ):
     """Initialize the conversion of LIF files to OME-Zarr - NgffImages.
