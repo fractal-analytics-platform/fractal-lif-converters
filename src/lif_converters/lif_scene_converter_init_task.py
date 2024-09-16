@@ -1,12 +1,12 @@
 """This task converts simple H5 files to OME-Zarr."""
 
 from pathlib import Path
-
 from typing import Optional
+
 import bioio_lif
 from bioio import BioImage
-from pydantic import validate_call
 from fractal_tasks_core.utils import logger
+from pydantic import validate_call
 
 
 def _rename_scene(scene_name: str):

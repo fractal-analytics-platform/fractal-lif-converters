@@ -107,7 +107,7 @@ def _export_acquisition_to_zarr(
     Args:
         zarr_url (Path): The path to the zarr store (ngff image).
         lif_path (Path): The path to the lif file.
-        scen_name (str): The name of the scene (as stored in the lif file).
+        scene_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
