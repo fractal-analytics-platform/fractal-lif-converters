@@ -40,7 +40,6 @@ def lif_plate_converter(
 
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
-        print(task_args["init_args"])
         list_updates = lif_converter_compute_task(
             zarr_url=task_args["zarr_url"], **task_args["init_args"]
         )
@@ -81,7 +80,6 @@ def lif_scene_converter(
 
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
-        print(task_args["init_args"])
         list_updates = lif_converter_compute_task(
             zarr_url=task_args["zarr_url"], **task_args["init_args"]
         )

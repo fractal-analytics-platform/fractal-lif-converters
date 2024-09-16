@@ -93,7 +93,7 @@ def lif_scene_converter_init_task(
             parallelization_list.append(
                 _create_parrallelization_list_entry(
                     zarr_dir=zarr_dir,
-                    lif_file_path=str(lif_file_path),
+                    lif_file_path=lif_file_path,
                     scene_name=_scene,
                     num_levels=num_levels,
                     coarsening_xy=coarsening_xy,
