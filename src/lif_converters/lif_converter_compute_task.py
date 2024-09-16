@@ -12,7 +12,10 @@ from lif_converters.utils.converter_utils import (
 
 @validate_call
 def lif_converter_compute_task(
+    *,
+    # Fractal parameters
     zarr_url: str,
+    # Task parameters
     lif_path: str,
     scene_name: str,
     num_levels: int,

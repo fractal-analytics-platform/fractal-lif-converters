@@ -48,8 +48,11 @@ def _create_parrallelization_list_entry(
 
 @validate_call
 def lif_scene_converter_init_task(
+    *,
+    # Fractal parameters
     zarr_urls: list[str],
     zarr_dir: str,
+    # Task parameters
     lif_files_path: Path,
     scene_name: Optional[str] = None,
     num_levels: int = 5,
