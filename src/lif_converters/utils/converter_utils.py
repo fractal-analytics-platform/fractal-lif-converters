@@ -66,10 +66,36 @@ def setup_plate_ome_zarr(
     return plate_group
 
 
-def export_plate_acquisition_to_zarr(
-    zarr_path: Path,
+def _write_rois_table(
+    image_group: zarr.hierarchy.Group, rois: list[dict], table_name: str
+):
+    """Write the ROIs table to the zarr store.
+
+    Args:
+        image_group (zarr.hierarchy.Group): The zarr group.
+        rois (list[dict]): The list of ROIs.
+        table_name (str): The name of the table.
+    """
+    roi_df = DataFrame.from_records(rois)
+    roi_df = roi_df.set_index("FieldIndex")
+    # transform the FieldIndex to the index of the table
+
+    roi_df.index = roi_df.index.astype(str)
+    roi_df = roi_df.astype(np.float32)
+    roi_ad = ad.AnnData(roi_df)
+
+    write_table(
+        image_group=image_group,
+        table=roi_ad,
+        table_name=table_name,
+        table_type="roi_table",
+    )
+
+
+def _export_acquisition_to_zarr(
+    zarr_url: Path,
     lif_path: Path,
-    tile_name: str,
+    scene_name: str,
     num_levels: int = 5,
     coarsening_xy: int | float = 2,
     overwrite: bool = True,
@@ -79,26 +105,24 @@ def export_plate_acquisition_to_zarr(
     Note that the image is assumed to be a part of a plate.
 
     Args:
-        zarr_path (Path): The path to the zarr store (plate root).
+        zarr_url (Path): The path to the zarr store (ngff image).
         lif_path (Path): The path to the lif file.
-        tile_name (str): The name of the scene (as stored in the lif file).
+        scen_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
     # Check if the zarr file exists
-    if not zarr_path.exists():
-        raise FileNotFoundError(f"Zarr file not found: {zarr_path}")
+    if not zarr_url.exists():
+        raise FileNotFoundError(f"Zarr file not found: {zarr_url}")
 
     if not lif_path.exists():
         raise FileNotFoundError(f"Lif file not found: {lif_path}")
 
-    mode = "w" if overwrite else "r+"
-
     # Setup the bioio Image
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
-    scene = PlateScene(scene_name=tile_name, image=img_bio)
+    scene = PlateScene(scene_name=scene_name, image=img_bio)
     img_bio.set_scene(scene.scene)
     img_bio.reader._read_immediate()
 
@@ -108,17 +132,11 @@ def export_plate_acquisition_to_zarr(
     idx = names_order.index(scene.scene)
     image = img.get_image(idx)
 
-    # Create the zarr store for the high resolution data
-    acquisition_path = build_acquisition_path(
-        row=scene.row, column=scene.column, acquisition=scene.acquisition_id
-    )
-
-    full_acquisition_path = f"{zarr_path}/{acquisition_path}"
-    full_high_res_path = f"{full_acquisition_path}/0"
-
+    # Build the correctly shape FOV grid
     grid, fov_rois, well_roi = build_grid_mapping(img, scene.scene)
     grid_size_y, grid_size_x = np.max(grid, axis=0) + 1
 
+    # Initialize the high resolution data to an empty zarr storeåå
     dim = image.dims
     num_channels = image.channels
     size_x, size_y = dim.x, dim.y
@@ -137,13 +155,15 @@ def export_plate_acquisition_to_zarr(
         array_shape = array_shape[1:]
         chunk_shape = chunk_shape[1:]
 
+    full_res_zarr_url = f"{zarr_url}/0"
+
     high_res_array = zarr.empty(
-        store=full_high_res_path,
+        store=full_res_zarr_url,
         shape=array_shape,
         dtype=img_bio.dtype,
         dimension_separator="/",
         chunks=chunk_shape,
-        mode=mode,
+        overwrite=overwrite,
     )
 
     # The (i, j) needs to be reversed
@@ -171,54 +191,131 @@ def export_plate_acquisition_to_zarr(
             high_res_array[slices] = frame
 
     # Build the pyramid for the high resolution data
-    coarsening_xy = int(coarsening_xy)
-    acquisition_image_path = f"{zarr_path}/{acquisition_path}"
-    build_pyramid(
-        zarrurl=acquisition_image_path,
-        num_levels=num_levels,
-        coarsening_xy=coarsening_xy,
-    )
+    # Check if coarsening_xy is an integer or a float with a decimal part of 0
+    if num_levels > 1:
+        if coarsening_xy.is_integer():
+            coarsening_xy = int(coarsening_xy)
+        else:
+            raise ValueError(
+                "coarsening_xy must be an integer to build a multi-resolution pyramid"
+            )
 
-    image_zarr_group = zarr.open_group(acquisition_image_path, mode=mode)
+        build_pyramid(
+            zarrurl=zarr_url,
+            num_levels=num_levels,
+            coarsening_xy=int(coarsening_xy),
+        )
+
+    mode = "a" if overwrite else "r+"
+    image_zarr_group = zarr.open_group(zarr_url, mode=mode)
 
     # Create FOV rois Table
-    foi_df = DataFrame.from_records(fov_rois)
-    foi_df = foi_df.set_index("FieldIndex")
-    # transform the FieldIndex to the index of the table
-
-    foi_df.index = foi_df.index.astype(str)
-    foi_df = foi_df.astype(np.float32)
-    foi_ad = ad.AnnData(foi_df)
-
-    write_table(
-        image_group=image_zarr_group,
-        table=foi_ad,
-        table_name="FOV_ROI_table",
-        table_type="roi_table",
-    )
+    if fov_rois is not None:
+        _write_rois_table(
+            image_group=image_zarr_group,
+            rois=fov_rois,
+            table_name="FOV_ROI_table",
+        )
 
     # Create Well ROI Table
-    well_df = DataFrame.from_records([well_roi])
-    well_df = well_df.set_index("FieldIndex")
-
-    well_df.index = well_df.index.astype(str)
-    well_df = well_df.astype(np.float32)
-    well_ad = ad.AnnData(well_df)
-
-    write_table(
+    _write_rois_table(
         image_group=image_zarr_group,
-        table=well_ad,
+        rois=[well_roi],
         table_name="well_ROI_table",
-        table_type="roi_table",
     )
 
     types = {
         "is_3D": True if dim.z > 1 else False,
     }
 
+    return types
+
+
+def export_ngff_plate_acquisition(
+    zarr_url: Path,
+    lif_path: Path,
+    scene_name: str,
+    num_levels: int = 5,
+    coarsening_xy: int | float = 2,
+    overwrite: bool = True,
+) -> tuple[str, dict, dict]:
+    """This function creates the high resolution data and the pyramid for the image.
+
+    Note that the image is assumed to be a part of a plate.
+
+    Args:
+        zarr_url (Path): The path to the zarr store (Plate root).
+        lif_path (Path): The path to the lif file.
+        scene_name (str): The name of the scene (as stored in the lif file).
+        num_levels (int): The number of resolution levels. Defaults to 5.
+        coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
+        overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
+
+    """
+    img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
+    scene = PlateScene(scene_name=scene_name, image=img_bio)
+    image_url = build_acquisition_path(
+        row=scene.row, column=scene.column, acquisition=scene.acquisition_id
+    )
+    zarr_url = zarr_url / image_url
+
+    types = _export_acquisition_to_zarr(
+        zarr_url=zarr_url,
+        lif_path=lif_path,
+        scene_name=scene_name,
+        num_levels=num_levels,
+        coarsening_xy=coarsening_xy,
+        overwrite=overwrite,
+    )
+
     attributes = {
         "plate": "TODO",
         "well": build_well_path(scene.row, scene.column),
     }
+    return zarr_url, types, attributes
 
-    return str(acquisition_image_path), types, attributes
+
+def export_ngff_single_scene(
+    zarr_url: Path,
+    lif_path: Path,
+    scene_name: str,
+    num_levels: int = 5,
+    coarsening_xy: int | float = 2,
+    overwrite: bool = True,
+) -> tuple[str, dict, dict]:
+    """This function creates the high resolution data and the pyramid for the image.
+
+    Note that the image is assumed to be a part of a plate.
+
+    Args:
+        zarr_url (Path): The path to the zarr store (Ngff Image root).
+        lif_path (Path): The path to the lif file.
+        scene_name (str): The name of the scene (as stored in the lif file).
+        num_levels (int): The number of resolution levels. Defaults to 5.
+        coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
+        overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
+
+    """
+    # Crea ngff metadata
+    img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
+    img_bio.set_scene(scene_name)
+    img_bio.reader._read_immediate()
+
+    ngff_meta = generate_ngff_metadata(
+        img_bio=img_bio, num_levels=num_levels, coarsening_xy=coarsening_xy
+    )
+
+    ngff_group = zarr.group(store=zarr_url, mode="a" if overwrite else "r+")
+    ngff_group.attrs.update(ngff_meta.model_dump(exclude_none=True))
+
+    # Create the high resolution data and the pyramid for the image
+    types = _export_acquisition_to_zarr(
+        zarr_url=zarr_url,
+        lif_path=lif_path,
+        scene_name=scene_name,
+        num_levels=num_levels,
+        coarsening_xy=coarsening_xy,
+        overwrite=overwrite,
+    )
+
+    return zarr_url, types, {}

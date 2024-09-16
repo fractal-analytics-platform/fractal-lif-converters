@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from lif_converters.lif_plate_converter_compute_task import (
-    lif_plate_converter_compute_task,
+from lif_converters.lif_converter_compute_task import (
+    lif_converter_compute_task,
 )
 from lif_converters.lif_plate_converter_init_task import lif_plate_converter_init_task
 
@@ -23,7 +23,7 @@ def test_basic_worflow(tmp_path):
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
         print(task_args["init_args"])
-        list_updates = lif_plate_converter_compute_task(
+        list_updates = lif_converter_compute_task(
             zarr_url=task_args["zarr_url"], **task_args["init_args"]
         )
         list_of_images.extend(list_updates["image_list_updates"])

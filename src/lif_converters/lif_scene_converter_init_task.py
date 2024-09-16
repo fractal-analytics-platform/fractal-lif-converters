@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+from typing import Optional
 import bioio_lif
 from bioio import BioImage
 from pydantic import validate_call
+from fractal_tasks_core.utils import logger
 
 
 def _rename_scene(scene_name: str):
@@ -48,7 +50,7 @@ def lif_scene_converter_init_task(
     zarr_urls: list[str],
     zarr_dir: str,
     lif_files_path: Path,
-    scene_name: str | None = None,
+    scene_name: Optional[str] = None,
     num_levels: int = 5,
     coarsening_xy: float = 2.0,
     overwrite: bool = True,
@@ -84,8 +86,7 @@ def lif_scene_converter_init_task(
             if scene_name in img_bio.scenes:
                 list_scenes = [scene_name]
             else:
-                # Raise a warning
-                pass
+                logger.warning(f"Scene {scene_name} not found in {lif_file_path}")
 
         for _scene in list_scenes:
             parallelization_list.append(
@@ -96,8 +97,14 @@ def lif_scene_converter_init_task(
                     num_levels=num_levels,
                     coarsening_xy=coarsening_xy,
                     overwrite=overwrite,
+                    plate_mode=False,
                 )
             )
+            logger.info(
+                f"{lif_file_path} - {_scene} added to the parallelization list."
+            )
+
+    logger.info(f"Found {len(parallelization_list)} scenes to convert.")
     return {"parallelization_list": parallelization_list}
 
 

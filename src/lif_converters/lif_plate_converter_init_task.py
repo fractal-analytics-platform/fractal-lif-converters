@@ -80,6 +80,7 @@ def lif_plate_converter_init_task(
                         "num_levels": num_levels,
                         "coarsening_xy": coarsening_xy,
                         "overwrite": overwrite,
+                        "plate_mode": True,
                     },
                 }
                 parallelization_list.append(task_kwargs)

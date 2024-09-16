@@ -106,9 +106,26 @@ def find_well_roi(fov_rois: list[dict]) -> dict:
     return well_roi
 
 
+def build_grid_mapping_no_mosaic(
+    lif_image: LifImage,
+) -> tuple[list, list[dict] | None, dict]:
+    """Build the grid mapping for a scene without mosaic."""
+    size_x, size_y, size_z = find_shape_um(lif_image)
+    well_roi = {
+        "FieldIndex": "Well_1",
+        "x_micrometer": 0.0,
+        "y_micrometer": 0.0,
+        "z_micrometer": 0.0,
+        "len_x_micrometer": size_x,
+        "len_y_micrometer": size_y,
+        "len_z_micrometer": size_z,
+    }
+    return [(0, 0)], None, well_roi
+
+
 def build_grid_mapping(
     image_file: LifFile, tile_name: str
-) -> tuple[list, list[dict], dict]:
+) -> tuple[list, list[dict] | None, dict]:
     """Find the appropriate grid mapping for the scene."""
     list_tiles_names = [meta["name"] for meta in image_file.image_list]
 
@@ -119,7 +136,7 @@ def build_grid_mapping(
     image = image_file.get_image(index_tile)
 
     if len(image.mosaic_position) == 0:
-        raise LifFormatNotSupported("Tile is not a mosaic. Cannot build grid mapping.")
+        return build_grid_mapping_no_mosaic(image)
 
     rois = mosaic_to_overlapping_rois(image)
     overlap = compute_overalap_ratio(rois)
