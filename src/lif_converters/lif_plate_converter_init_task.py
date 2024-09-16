@@ -20,8 +20,8 @@ def lif_plate_converter_init_task(
     zarr_urls: list[str],
     zarr_dir: str,
     lif_files_path: str,
-    num_levels=5,
-    coarsening_xy=2.0,
+    num_levels: int = 5,
+    coarsening_xy: int = 2,
     overwrite: bool = False,
 ):
     """Initialize the conversion of LIF files to an OME-Zarr - Plate.

@@ -53,7 +53,7 @@ def lif_scene_converter_init_task(
     lif_files_path: Path,
     scene_name: Optional[str] = None,
     num_levels: int = 5,
-    coarsening_xy: float = 2.0,
+    coarsening_xy: int = 2,
     overwrite: bool = True,
 ):
     """Initialize the conversion of LIF files to OME-Zarr - NgffImages.
