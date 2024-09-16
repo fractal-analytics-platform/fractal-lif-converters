@@ -52,7 +52,6 @@ def lif_plate_converter_init_task(
     parallelization_list = []
 
     for lif_path in all_lif_files:
-        print(f"Converting {lif_path}")
         img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
         zarr_path = zarr_dir / f"{lif_path.stem}.zarr"
         img_bio = BioImage(lif_path, reader=bioio_lif.Reader)

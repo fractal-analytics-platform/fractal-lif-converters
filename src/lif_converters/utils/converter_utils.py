@@ -126,18 +126,17 @@ def _export_acquisition_to_zarr(
 
     # Setup the bioio Image
     img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
-    scene = PlateScene(scene_name=scene_name, image=img_bio)
-    img_bio.set_scene(scene.scene)
+    img_bio.set_scene(scene_name)
     img_bio.reader._read_immediate()
 
     # Find idx of the scene in the image list from the raw readlif Image
     img = readlif.reader.LifFile(lif_path)
     names_order = [meta["name"] for meta in img.image_list]
-    idx = names_order.index(scene.scene)
+    idx = names_order.index(scene_name)
     image = img.get_image(idx)
 
     # Build the correctly shape FOV grid
-    grid, fov_rois, well_roi = build_grid_mapping(img, scene.scene)
+    grid, fov_rois, well_roi = build_grid_mapping(img, scene_name)
     grid_size_y, grid_size_x = np.max(grid, axis=0) + 1
 
     # Initialize the high resolution data to an empty zarr storeåå
@@ -161,7 +160,7 @@ def _export_acquisition_to_zarr(
 
     full_res_zarr_url = f"{zarr_url}/0"
 
-    high_res_array = zarr.empty(
+    high_res_array = zarr.zeros(
         store=full_res_zarr_url,
         shape=array_shape,
         dtype=img_bio.dtype,
