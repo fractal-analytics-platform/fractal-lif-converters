@@ -7,7 +7,7 @@ import bioio_lif
 from bioio import BioImage
 from fractal_tasks_core.utils import logger
 from pydantic import validate_call
-from lif_converters.lif_converter_compute_task import ComputeInputModel
+from lif_converters.convert_lif_compute_task import ComputeInputModel
 
 
 def _rename_scene(scene_name: str):

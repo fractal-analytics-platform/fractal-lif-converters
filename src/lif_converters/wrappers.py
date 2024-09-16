@@ -1,22 +1,23 @@
 """Utility for running the init and compute tasks with a single function call."""
 
 from pathlib import Path
-
-from lif_converters.lif_converter_compute_task import (
+from fractal_tasks_core.utils import logger
+from lif_converters.convert_lif_compute_task import (
     lif_converter_compute_task,
 )
-from lif_converters.lif_plate_converter_init_task import lif_plate_converter_init_task
-from lif_converters.lif_scene_converter_init_task import (
+from lif_converters.convert_lif_plate_init_task import lif_plate_converter_init_task
+from lif_converters.convert_lif_scene_init_task import (
     lif_scene_converter_init_task,
 )
 
 
-def lif_plate_converter(
+def convert_lif_plate_to_omezarr(
     zarr_dir: Path | str,
     lif_files_path: Path | str,
     num_levels: int = 5,
     coarsening_xy: int = 2,
     overwrite: bool = False,
+    verbose: bool = False,
 ):
     """Convert LIF files to an OME-Zarr Ngff Plate.
 
@@ -27,8 +28,14 @@ def lif_plate_converter(
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten
+        verbose (bool): If True, the logger will be set to INFO.
 
     """
+    if verbose:
+        logger.setLevel("INFO")
+    else:
+        logger.setLevel("ERROR")
+
     parallelization_list = lif_plate_converter_init_task(
         zarr_urls=[],
         zarr_dir=str(zarr_dir),
@@ -46,13 +53,14 @@ def lif_plate_converter(
         list_of_images.extend(list_updates["image_list_updates"])
 
 
-def lif_scene_converter(
+def convert_lif_scene_to_omezarr(
     zarr_dir: Path | str,
     lif_files_path: Path | str,
     scene_name: str | None = None,
     num_levels: int = 5,
     coarsening_xy: float = 2.0,
     overwrite: bool = False,
+    verbose: bool = False,
 ):
     """Convert LIF files to an OME-Zarr Ngff Image.
 
@@ -66,8 +74,14 @@ def lif_scene_converter(
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten
+        verbose (bool): If True, the logger will be set to INFO.
 
     """
+    if verbose:
+        logger.setLevel("INFO")
+    else:
+        logger.setLevel("ERROR")
+
     parallelization_list = lif_scene_converter_init_task(
         zarr_urls=[],
         zarr_dir=str(zarr_dir),

@@ -12,7 +12,7 @@ from lif_converters.utils import (
     TimeSeriesNotSupported,
     setup_plate_ome_zarr,
 )
-from lif_converters.lif_converter_compute_task import ComputeInputModel
+from lif_converters.convert_lif_compute_task import ComputeInputModel
 
 
 @validate_call
