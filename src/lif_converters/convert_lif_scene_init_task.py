@@ -43,7 +43,7 @@ def _create_parrallelization_list_entry(
             coarsening_xy=coarsening_xy,
             overwrite=overwrite,
             plate_mode=False,
-        ),
+        ).model_dump(),
     }
     return task_kwargs
 

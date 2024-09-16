@@ -83,7 +83,7 @@ def convert_lif_plate_init_task(
                         coarsening_xy=coarsening_xy,
                         overwrite=overwrite,
                         plate_mode=True,
-                    ),
+                    ).model_dump(),
                 }
                 parallelization_list.append(task_kwargs)
                 logger.info(
