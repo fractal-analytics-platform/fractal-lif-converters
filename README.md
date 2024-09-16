@@ -57,7 +57,7 @@ and the OME-Zarr file will be formatted as follows:
 --------/1
 ------------/0 # This will correspond to "Tilescan 1/A/1"
 ------------/1 # This will correspond to "Tilescan 2
-    ...
+            ...
 ```
 
 * Single Acquisition Converter:
