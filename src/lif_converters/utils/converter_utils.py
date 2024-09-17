@@ -64,7 +64,7 @@ def setup_plate_ome_zarr(
             row=scene.row, column=scene.column, acquisition=scene.acquisition_id
         )
         acquisition_group = plate_group.create_group(acquisition_path)
-        acquisition_group.attrs.update(ngff_meta.model_dump(exclude_none=True))
+        acquisition_group.attrs.update(ngff_meta)
 
     logger.info(f"Created zarr store at {zarr_path}")
     return plate_group
@@ -313,7 +313,7 @@ def export_ngff_single_scene(
     )
 
     ngff_group = zarr.group(store=zarr_url, overwrite=overwrite)
-    ngff_group.attrs.update(ngff_meta.model_dump(exclude_none=True))
+    ngff_group.attrs.update(ngff_meta)
 
     # Create the high resolution data and the pyramid for the image
     types = _export_acquisition_to_zarr(

@@ -8,8 +8,6 @@ from fractal_tasks_core.ngff.specs import (
     Axis,
     Dataset,
     Multiscale,
-    NgffImageMeta,
-    Omero,
     ScaleCoordinateTransformation,
 )
 
@@ -34,12 +32,12 @@ def generate_omero_metadata(img_bio: BioImage) -> dict:
                 index=i,
                 label=channel_name,
                 window=Window(start=type_info.min, end=type_info.max),
+                active=True,
             )
         )
+
     channels = define_omero_channels(channels=omero_channels, bit_depth=type_info.bits)
-    omero = Omero(channels=channels)
-    omero = omero.model_dump(exclude_none=True)
-    omero["version"] = __OME_NGFF_VERSION__
+    omero = {"channels": channels, "version": __OME_NGFF_VERSION__}
     return omero
 
 
@@ -96,7 +94,7 @@ def generate_multiscale_metadata(
 
 def generate_ngff_metadata(
     img_bio: BioImage, num_levels: int = 5, coarsening_xy: int | float = 2.0
-) -> NgffImageMeta:
+) -> dict:
     """Create the NGFF metadata for a BioImage object.
 
     Args:
@@ -112,5 +110,5 @@ def generate_ngff_metadata(
     )
 
     omero = generate_omero_metadata(img_bio)
-    ngff = NgffImageMeta(multiscales=[multiscale], omero=omero)
+    ngff = {"multiscales": [multiscale.model_dump(exclude_none=True)], "omero": omero}
     return ngff
