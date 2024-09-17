@@ -15,7 +15,7 @@ def find_shape_um(image: LifImage) -> tuple[float, float, float]:
         if i in image.dims_n.keys():
             shapes.append(image.dims_n[i] / image.scale_n[i])
         else:
-            shapes.append(0)
+            shapes.append(1)
     return shapes
 
 
