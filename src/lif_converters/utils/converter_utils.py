@@ -275,7 +275,7 @@ def export_ngff_plate_acquisition(
     )
 
     attributes = {
-        "plate": "TODO",
+        "plate": scene.tile_name,
         "well": build_well_path(scene.row, scene.column),
     }
     return zarr_url, types, attributes
