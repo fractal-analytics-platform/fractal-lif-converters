@@ -21,7 +21,7 @@ include = ["__FRACTAL_MANIFEST__.json"]
 
 # Project metadata (see https://peps.python.org/pep-0621)
 [project]
-name = "lif-converters"
+name = "fractal-lif-converters"
 dynamic = ["version"]
 description = "Package description."
 readme = "README.md"
