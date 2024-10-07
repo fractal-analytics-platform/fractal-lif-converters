@@ -15,7 +15,12 @@ from fractal_tasks_core.ngff.specs import (
 def pick_color(channel_name: str) -> str:
     """Pick a color for the channel."""
     defaults = {
-        "dapi": None,
+        "dapi": "0000FF",
+        "hoechst": "0000FF",
+        "gfp": "00FF00",
+        "cy3": "FFFF00",
+        "cy5": "FF0000",
+        "brightfield": "808080",
         "red": "FF0000",
         "yellow": "FFFF00",
         "magenta": "FF00FF",
