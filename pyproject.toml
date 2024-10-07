@@ -32,7 +32,8 @@ authors = [
 
 # Required Python version and dependencies
 requires-python = ">=3.10"
-dependencies = ["fractal-tasks-core == 1.3.1",
+dependencies = ["fractal-tasks-core==1.3.1",
+                "ngio==0.1.0beta3",
                 "numpy",
                 "bioio", 
                 "bioio-lif"
