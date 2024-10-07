@@ -12,6 +12,27 @@ from fractal_tasks_core.ngff.specs import (
 )
 
 
+def pick_color(channel_name: str) -> str:
+    """Pick a color for the channel."""
+    defaults = {
+        "dapi": None,
+        "red": "FF0000",
+        "yellow": "FFFF00",
+        "magenta": "FF00FF",
+        "cyan": "00FFFF",
+        "gray": "808080",
+        "green": "00FF00",
+    }
+
+    def random_color():
+        # TODO to be implemented
+        return defaults.get("gray")
+
+    color = defaults.get(channel_name.lower(), None)
+    color = random_color() if color is None else color
+    return color
+
+
 def generate_omero_metadata(img_bio: BioImage) -> dict:
     """Create the Omero metadata for a BioImage object.
 
@@ -28,10 +49,11 @@ def generate_omero_metadata(img_bio: BioImage) -> dict:
         # TODO improve wavelength_id
         omero_channels.append(
             OmeroChannel(
-                wavelength_id=f"C{i+1:02d}",
+                wavelength_id=channel_name,
                 index=i,
                 label=channel_name,
                 window=Window(start=type_info.min, end=type_info.max),
+                color=pick_color(channel_name),
                 active=True,
             )
         )
