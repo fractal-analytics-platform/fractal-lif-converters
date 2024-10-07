@@ -86,4 +86,3 @@ convert_lif_plate_to_omezarr(
 
 Note that the if the `scene_name` is not provided, all the scenes in the lif file will be converted in a
 single Ngff Image.
-
