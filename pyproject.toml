@@ -10,7 +10,7 @@ source = "vcs"
 
 # read more about configuring hatch at:
 # https://hatch.pypa.io/latest/config/build/
-[tool.hatch.build.targets.sdists]
+[tool.hatch.build.targets.wheel]
 packages = ["src/lif_converters"]
 
 # Always include the __FRACTAL_MANIFEST__.json file in the package
