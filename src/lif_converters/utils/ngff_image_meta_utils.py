@@ -55,7 +55,7 @@ def generate_omero_metadata(img_bio: BioImage) -> dict:
         label = f"Ch{i + 1}"
         omero_channels.append(
             OmeroChannel(
-                wavelength_id=channel_name,
+                wavelength_id=label,
                 index=i,
                 label=label,
                 window=Window(start=type_info.min, end=type_info.max),
