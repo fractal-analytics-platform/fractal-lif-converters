@@ -52,11 +52,12 @@ def generate_omero_metadata(img_bio: BioImage) -> dict:
     for i, channel_name in enumerate(img_bio.channel_names):
         # TODO improve the channel name (seems wrong in the example data)
         # TODO improve wavelength_id
+        label = f"Ch{i + 1}"
         omero_channels.append(
             OmeroChannel(
                 wavelength_id=channel_name,
                 index=i,
-                label=channel_name,
+                label=label,
                 window=Window(start=type_info.min, end=type_info.max),
                 color=pick_color(channel_name),
                 active=True,
