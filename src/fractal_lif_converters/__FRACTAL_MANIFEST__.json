@@ -34,6 +34,12 @@
             "type": "string",
             "description": "Input path to the LIF file, or a folder containing LIF files."
           },
+          "swap_xy_axes": {
+            "default": false,
+            "title": "Swap Xy Axes",
+            "type": "boolean",
+            "description": "If True, the xy axes will be swapped. Defaults to False."
+          },
           "num_levels": {
             "default": 5,
             "minimum": 0,
@@ -96,6 +102,11 @@
               "plate_mode": {
                 "default": true,
                 "title": "Plate Mode",
+                "type": "boolean"
+              },
+              "swap_xy_axes": {
+                "default": false,
+                "title": "Swap Xy Axes",
                 "type": "boolean"
               }
             },
@@ -167,6 +178,12 @@
             "type": "string",
             "description": "Name of the scene to convert. If None all scenes in the lif file will will converted. If a folder of lif files is provided, the scene_nane will be converted from each file."
           },
+          "swap_xy_axes": {
+            "default": false,
+            "title": "Swap Xy Axes",
+            "type": "boolean",
+            "description": "If True, the xy axes will be swapped. Defaults to False."
+          },
           "num_levels": {
             "default": 5,
             "minimum": 0,
@@ -229,6 +246,11 @@
               "plate_mode": {
                 "default": true,
                 "title": "Plate Mode",
+                "type": "boolean"
+              },
+              "swap_xy_axes": {
+                "default": false,
+                "title": "Swap Xy Axes",
                 "type": "boolean"
               }
             },

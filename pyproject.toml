@@ -11,7 +11,7 @@ source = "vcs"
 # read more about configuring hatch at:
 # https://hatch.pypa.io/latest/config/build/
 [tool.hatch.build.targets.wheel]
-packages = ["src/lif_converters"]
+packages = ["src/fractal_lif_converters"]
 
 # Always include the __FRACTAL_MANIFEST__.json file in the package
 #[tool.hatch.build]
@@ -20,7 +20,7 @@ packages = ["src/lif_converters"]
 
 # Project metadata (see https://peps.python.org/pep-0621)
 [project]
-name = "fractal-lif-converters"
+name = "fractal_lif_converters"
 dynamic = ["version"]
 description = "Package description."
 readme = "README.md"
