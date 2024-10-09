@@ -14,9 +14,9 @@ from fractal_tasks_core.tables import write_table
 from fractal_tasks_core.utils import logger
 from pandas import DataFrame
 
-from lif_converters.utils.lif_utils import build_grid_mapping
-from lif_converters.utils.ngff_image_meta_utils import generate_ngff_metadata
-from lif_converters.utils.ngff_plate_meta_utils import (
+from fractal_lif_converters.utils.lif_utils import build_grid_mapping
+from fractal_lif_converters.utils.ngff_image_meta_utils import generate_ngff_metadata
+from fractal_lif_converters.utils.ngff_plate_meta_utils import (
     PlateScene,
     build_acquisition_path,
     build_well_path,
@@ -150,8 +150,8 @@ def _export_acquisition_to_zarr(
         dim.t,
         num_channels,
         dim.z,
-        grid_size_y * size_y,
-        grid_size_x * size_x,
+        grid_size_x * size_y,
+        grid_size_y * size_x,
     ]
     chunk_shape = [1, 1, 1, dim.y, dim.x]
 
@@ -193,6 +193,18 @@ def _export_acquisition_to_zarr(
                     slice(j * size_x, (j + 1) * size_x),
                 )
 
+            """
+            print(slices)
+            print(
+                _c,
+                _z,
+                i * size_y,
+                (i + 1) * size_y,
+                j * size_x,
+                (j + 1) * size_x,
+            )
+            print(high_res_array.shape)
+            """
             high_res_array[slices] = frame
 
     # Build the pyramid for the high resolution data

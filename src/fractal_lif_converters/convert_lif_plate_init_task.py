@@ -7,8 +7,8 @@ from bioio import BioImage
 from fractal_tasks_core.utils import logger
 from pydantic import Field, validate_call
 
-from lif_converters.convert_lif_compute_task import ComputeInputModel
-from lif_converters.utils import (
+from fractal_lif_converters.convert_lif_compute_task import ComputeInputModel
+from fractal_lif_converters.utils import (
     LifFormatNotSupported,
     TimeSeriesNotSupported,
     setup_plate_ome_zarr,

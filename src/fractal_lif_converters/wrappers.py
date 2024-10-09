@@ -2,11 +2,13 @@
 
 from pathlib import Path
 
-from lif_converters.convert_lif_compute_task import (
+from fractal_lif_converters.convert_lif_compute_task import (
     convert_lif_compute_task,
 )
-from lif_converters.convert_lif_plate_init_task import convert_lif_plate_init_task
-from lif_converters.convert_lif_scene_init_task import (
+from fractal_lif_converters.convert_lif_plate_init_task import (
+    convert_lif_plate_init_task,
+)
+from fractal_lif_converters.convert_lif_scene_init_task import (
     convert_lif_scene_init_task,
 )
 

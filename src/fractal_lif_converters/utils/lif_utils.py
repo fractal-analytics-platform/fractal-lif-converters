@@ -5,7 +5,7 @@ from itertools import pairwise
 import numpy as np
 from readlif.reader import LifFile, LifImage
 
-from lif_converters.utils import LifFormatNotSupported
+from fractal_lif_converters.utils import LifFormatNotSupported
 
 
 def find_shape_um(image: LifImage) -> tuple[float, float, float]:

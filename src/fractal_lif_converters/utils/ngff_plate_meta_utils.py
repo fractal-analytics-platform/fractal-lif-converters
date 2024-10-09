@@ -14,7 +14,7 @@ from fractal_tasks_core.ngff.specs import (
     WellInPlate,
 )
 
-from lif_converters.utils import LifFormatNotSupported
+from fractal_lif_converters.utils import LifFormatNotSupported
 
 
 def column_formatting(column: int | str) -> str:

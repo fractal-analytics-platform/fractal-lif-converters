@@ -2,7 +2,7 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from lif_converters.wrappers import (
+from fractal_lif_converters.wrappers import (
     convert_lif_plate_to_omezarr,
     convert_lif_scene_to_omezarr,
 )

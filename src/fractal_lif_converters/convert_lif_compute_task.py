@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, validate_call
 
-from lif_converters.utils.converter_utils import (
+from fractal_lif_converters.utils.converter_utils import (
     export_ngff_plate_acquisition,
     export_ngff_single_scene,
 )
