@@ -281,6 +281,7 @@ def export_ngff_plate_acquisition(
         scene_name=scene_name,
         num_levels=num_levels,
         coarsening_xy=coarsening_xy,
+        swap_xy_axes=swap_xy_axes,
         overwrite=overwrite,
     )
 
@@ -332,6 +333,7 @@ def export_ngff_single_scene(
         zarr_url=zarr_url,
         lif_path=lif_path,
         scene_name=scene_name,
+        swap_xy_axes=swap_xy_axes,
         num_levels=num_levels,
         coarsening_xy=coarsening_xy,
         overwrite=overwrite,
