@@ -16,6 +16,7 @@ from fractal_lif_converters.convert_lif_scene_init_task import (
 def convert_lif_plate_to_omezarr(
     zarr_dir: Path | str,
     lif_files_path: Path | str,
+    swap_xy_axes: bool = False,
     num_levels: int = 5,
     coarsening_xy: int = 2,
     overwrite: bool = False,
@@ -26,6 +27,7 @@ def convert_lif_plate_to_omezarr(
         zarr_dir (Path | str): Output path to save the OME-Zarr file.
         lif_files_path (Path | str): Input path to the LIF file,
             or a folder containing LIF files.
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten
@@ -37,6 +39,7 @@ def convert_lif_plate_to_omezarr(
         lif_files_path=str(lif_files_path),
         num_levels=num_levels,
         coarsening_xy=coarsening_xy,
+        swap_xy_axes=swap_xy_axes,
         overwrite=overwrite,
     )
 
@@ -52,6 +55,7 @@ def convert_lif_scene_to_omezarr(
     zarr_dir: Path | str,
     lif_files_path: Path | str,
     scene_name: str | None = None,
+    swap_xy_axes: bool = False,
     num_levels: int = 5,
     coarsening_xy: float = 2.0,
     overwrite: bool = False,
@@ -65,6 +69,7 @@ def convert_lif_scene_to_omezarr(
         scene_name (str | None): Name of the scene to convert. If None all scenes in the
             lif file will will converted. If a folder of lif files is provided, the
             scene_nane will be converted from each file.
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten
@@ -77,6 +82,7 @@ def convert_lif_scene_to_omezarr(
         scene_name=scene_name,
         num_levels=num_levels,
         coarsening_xy=coarsening_xy,
+        swap_xy_axes=swap_xy_axes,
         overwrite=overwrite,
     )
 
