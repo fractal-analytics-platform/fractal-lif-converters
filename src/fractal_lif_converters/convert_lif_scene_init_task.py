@@ -30,6 +30,7 @@ def _create_parrallelization_list_entry(
     num_levels: int,
     coarsening_xy: float,
     overwrite: bool,
+    swap_xy_axes: bool,
 ):
     zarr_url = _create_zarr_image_url(
         zarr_dir=zarr_dir, lif_stem=lif_file_path.stem, scene_name=scene_name
@@ -43,6 +44,7 @@ def _create_parrallelization_list_entry(
             coarsening_xy=coarsening_xy,
             overwrite=overwrite,
             plate_mode=False,
+            swap_xy_axes=swap_xy_axes,
         ).model_dump(),
     }
     return task_kwargs
@@ -56,7 +58,8 @@ def convert_lif_scene_init_task(
     zarr_dir: str,
     # Task parameters
     lif_files_path: str,
-    scene_name: Optional[str] = None,
+    scene_name: Optional[str] = None,  # noqa Fractal manifest building only supports Optional
+    swap_xy_axes: bool = False,
     num_levels: int = Field(default=5, ge=0),
     coarsening_xy: int = Field(default=2, ge=1),
     overwrite: bool = False,
@@ -71,6 +74,7 @@ def convert_lif_scene_init_task(
         scene_name (str | None): Name of the scene to convert. If None all scenes in the
             lif file will will converted. If a folder of lif files is provided, the
             scene_nane will be converted from each file.
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten.
@@ -103,6 +107,7 @@ def convert_lif_scene_init_task(
                     num_levels=num_levels,
                     coarsening_xy=coarsening_xy,
                     overwrite=overwrite,
+                    swap_xy_axes=swap_xy_axes,
                 )
             )
             logger.info(

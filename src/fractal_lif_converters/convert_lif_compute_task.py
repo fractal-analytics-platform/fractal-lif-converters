@@ -19,6 +19,7 @@ class ComputeInputModel(BaseModel):
     coarsening_xy: int = Field(2, ge=1)
     overwrite: bool = False
     plate_mode: bool = True
+    swap_xy_axes: bool = False
 
 
 @validate_call
@@ -50,6 +51,7 @@ def convert_lif_compute_task(
         num_levels=init_args.num_levels,
         coarsening_xy=init_args.coarsening_xy,
         overwrite=init_args.overwrite,
+        swap_xy_axes=init_args.swap_xy_axes,
     )
 
     return {

@@ -23,6 +23,7 @@ def convert_lif_plate_init_task(
     zarr_dir: str,
     # Task parameters
     lif_files_path: str,
+    swap_xy_axes: bool = False,
     num_levels: int = Field(default=5, ge=0),
     coarsening_xy: int = Field(default=2, ge=1),
     overwrite: bool = False,
@@ -34,6 +35,7 @@ def convert_lif_plate_init_task(
         zarr_dir (str): Output path to save the OME-Zarr file.
         lif_files_path (str): Input path to the LIF file,
             or a folder containing LIF files.
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
         overwrite (bool): If True, the zarr store will be overwritten.
@@ -83,6 +85,7 @@ def convert_lif_plate_init_task(
                         coarsening_xy=coarsening_xy,
                         overwrite=overwrite,
                         plate_mode=True,
+                        swap_xy_axes=swap_xy_axes,
                     ).model_dump(),
                 }
                 parallelization_list.append(task_kwargs)

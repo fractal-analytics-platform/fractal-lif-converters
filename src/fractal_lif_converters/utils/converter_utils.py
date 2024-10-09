@@ -102,6 +102,7 @@ def _export_acquisition_to_zarr(
     scene_name: str,
     num_levels: int = 5,
     coarsening_xy: int = 2,
+    swap_xy_axes: bool = False,
     overwrite: bool = True,
 ) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
@@ -114,6 +115,7 @@ def _export_acquisition_to_zarr(
         scene_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
@@ -141,7 +143,13 @@ def _export_acquisition_to_zarr(
     grid, fov_rois, well_roi = build_grid_mapping(img, scene_name)
     grid_size_y, grid_size_x = np.max(grid, axis=0) + 1
 
-    # Initialize the high resolution data to an empty zarr storeåå
+    if swap_xy_axes:
+        # Swap the x and y axes
+        # TODO this a hack to fix the grid mapping but tables rois also need to be
+        # updated
+        grid_size_x, grid_size_y = grid_size_y, grid_size_x
+
+    # Initialize the high resolution data to an empty zarr store
     dim = image.dims
     num_channels = image.channels
     size_x, size_y = dim.x, dim.y
@@ -150,10 +158,10 @@ def _export_acquisition_to_zarr(
         dim.t,
         num_channels,
         dim.z,
-        grid_size_x * size_y,
-        grid_size_y * size_x,
+        grid_size_y * size_y,
+        grid_size_x * size_x,
     ]
-    chunk_shape = [1, 1, 1, dim.y, dim.x]
+    chunk_shape = [1, 1, 1, size_y, size_x]
 
     if dim.t == 1:
         # Remove the time dimension
@@ -193,18 +201,6 @@ def _export_acquisition_to_zarr(
                     slice(j * size_x, (j + 1) * size_x),
                 )
 
-            """
-            print(slices)
-            print(
-                _c,
-                _z,
-                i * size_y,
-                (i + 1) * size_y,
-                j * size_x,
-                (j + 1) * size_x,
-            )
-            print(high_res_array.shape)
-            """
             high_res_array[slices] = frame
 
     # Build the pyramid for the high resolution data
@@ -254,6 +250,7 @@ def export_ngff_plate_acquisition(
     scene_name: str,
     num_levels: int = 5,
     coarsening_xy: int | float = 2,
+    swap_xy_axes: bool = False,
     overwrite: bool = True,
 ) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
@@ -266,6 +263,7 @@ def export_ngff_plate_acquisition(
         scene_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
     """
@@ -299,6 +297,7 @@ def export_ngff_single_scene(
     scene_name: str,
     num_levels: int = 5,
     coarsening_xy: int | float = 2,
+    swap_xy_axes: bool = False,
     overwrite: bool = True,
 ) -> tuple[str, dict, dict]:
     """This function creates the high resolution data and the pyramid for the image.
@@ -310,6 +309,7 @@ def export_ngff_single_scene(
         lif_path (Path): The path to the lif file.
         scene_name (str): The name of the scene (as stored in the lif file).
         num_levels (int): The number of resolution levels. Defaults to 5.
+        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
         coarsening_xy (int | float): The coarsening factor for the xy axes. Defaults
         overwrite (bool): If True, the zarr store will be overwritten. Defaults to True.
 
