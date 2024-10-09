@@ -42,8 +42,8 @@ jobs:
 
       - name: Check if manifest has changed
         run: |
-          if [ -n "$(git diff --exit-code ./src/lif_converters/__FRACTAL_MANIFEST__.json)" ]; then
-          echo "__FRACTAL_MANIFEST__.json has changed. Please run 'python src/lif_converters/dev/create_manifest.py' and commit the changes."
+          if [ -n "$(git diff --exit-code ./src/fractal_lif_converters/__FRACTAL_MANIFEST__.json)" ]; then
+          echo "__FRACTAL_MANIFEST__.json has changed. Please run 'python src/fractal_lif_converters/dev/create_manifest.py' and commit the changes."
             exit 1
           else
             echo "__FRACTAL_MANIFEST__.json has not changed."
