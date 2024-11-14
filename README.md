@@ -1,7 +1,7 @@
 # Lif to OME-Zarr Converters
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/d1aaa6e5-7ace-4583-8f53-077567880b92" alt="Fractal lif converters" width="400">
+  <img src="https://raw.githubusercontent.com/fractal-analytics-platform/fractal-logos/refs/heads/main/projects/Fractal_lif_converters.png" alt="Fractal lif converter logo" width="400">
 </p>
 
 [![CI (build and test)](https://github.com/fractal-analytics-platform/fractal-lif-converters/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/fractal-analytics-platform/fractal-lif-converters/actions/workflows/build_and_test.yml)
