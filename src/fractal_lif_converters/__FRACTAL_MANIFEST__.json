@@ -3,6 +3,12 @@
   "task_list": [
     {
       "name": "Convert Lif Plate to OME-Zarr",
+      "category": "Conversion",
+      "modality": "HCS",
+      "tags": [
+        "Leica",
+        "Plate converter"
+      ],
       "executable_non_parallel": "convert_lif_plate_init_task.py",
       "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
@@ -142,6 +148,11 @@
     },
     {
       "name": "Convert Lif Scene to OME-Zarr",
+      "category": "Conversion",
+      "tags": [
+        "Leica",
+        "Single Image Converter"
+      ],
       "executable_non_parallel": "convert_lif_scene_init_task.py",
       "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
@@ -286,5 +297,6 @@
     }
   ],
   "has_args_schemas": true,
-  "args_schema_version": "pydantic_v2"
+  "args_schema_version": "pydantic_v2",
+  "authors": "Lorenzo Cerrone"
 }
