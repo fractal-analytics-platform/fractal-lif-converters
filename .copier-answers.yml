@@ -1,10 +1,11 @@
 # Do not edit - changes here will be overwritten by Copier
-_commit: v0.4.0
+_commit: v0.4.2
 _src_path: gh:fractal-analytics-platform/fractal-tasks-template
 author_email: lorenzo.cerrone@uzh.ch
 author_name: Lorenzo Cerrone
-package_name: lif_converters
-project_name: lif-converters
-project_short_description: Package description.
-project_url: ''
+package_name: fractal_lif_converters
+project_name: fractal-lif-converters
+project_short_description: Converter from the Lif files (Leica Microscope) to OME-Zarr
+    format.
+project_url: https://github.com/fractal-analytics-platform/fractal-lif-converters
 
