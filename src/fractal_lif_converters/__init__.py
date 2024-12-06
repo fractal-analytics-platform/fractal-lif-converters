@@ -1,4 +1,6 @@
-"""Package description."""
+"""
+Converter from the Lif files (Leica Microscope) to OME-Zarr format.
+"""
 
 from importlib.metadata import PackageNotFoundError, version
 
