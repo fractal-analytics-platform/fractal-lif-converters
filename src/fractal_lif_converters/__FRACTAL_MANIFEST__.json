@@ -144,7 +144,8 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_plate_init_task\nInitialize the conversion of LIF files to an OME-Zarr - Plate.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n"
+      "docs_info": "## convert_lif_plate_init_task\nInitialize the conversion of LIF files to an OME-Zarr - Plate.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n",
+      "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     },
     {
       "name": "Convert Lif Scene to OME-Zarr",
@@ -293,7 +294,8 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_scene_init_task\nInitialize the conversion of LIF files to OME-Zarr - NgffImages.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n"
+      "docs_info": "## convert_lif_scene_init_task\nInitialize the conversion of LIF files to OME-Zarr - NgffImages.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n",
+      "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     }
   ],
   "has_args_schemas": true,
