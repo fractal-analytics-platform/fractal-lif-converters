@@ -117,3 +117,6 @@ ENV/
 
 # Test exports
 exports/
+# pixi environments
+.pixi
+*.egg-info
