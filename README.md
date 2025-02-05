@@ -114,22 +114,22 @@ In this case, no `acquisition_id` or `plate_name` can be provided.
     )
     ```
 
-### Supported Lif File Layouts
+### Supported Lif File Plate Layouts
 
 The following plate layout are supported:
 
 * Single Position Plates
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A
     ------------/1 (Simple Image)
     ```
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A1 (Simple Image)
     --------/...
     ```
@@ -137,8 +137,8 @@ The following plate layout are supported:
 * Multi Position Plates
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A
     ------------/1
     ----------------/R1 (Simple Image)
@@ -147,8 +147,8 @@ The following plate layout are supported:
     ```
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A1
     ------------/R1 (Simple Image)
     ------------/R2 (Simple Image)
@@ -158,27 +158,33 @@ The following plate layout are supported:
 * Mosaique Plates
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A
     ------------/1 (Mosaic Image)
     ------------/...
     ```
 
     ```text
-    /Project.lif
-    ----/Tilescan 1/
+    /{Project.lif}
+    ----/{Tilescan 1}/
     --------/A1 (Mosaic Image)
     --------/...
     ```
 
-#### Edge cases
+The names in curly braces `{}` can be freely chosen by the user. 
 
-* In case of more complex plate formats, for example FLIM  data, the converter will ignore the data thad does not follow the above formats. For example:
+While the othe names must follow the following format:
+
+* The well name must be a singe or duble letter followed by a positive integer.
+Valid examples are `A1`, `A2`, `B1`, `AA1`, `AA12` etc.
+* Alternatively, the well can be hierarchically structured, for example `A/1`, `A/2`, `B/1`, `AA/1`, `AA/12` etc.
+* If the well is a multi-position well, the positions must be named `R` followed by a positive integer. Valid examples are `R1`, `R2`, `R3`, `R12` etc.
+* In case of more complex plate formats, for example FLIM  data, the converter will ignore the data that does not follow the above formats. For example:
 
   ```text
-  /Project.lif
-  ----/Tilescan 1/
+  /{Project.lif}
+  ----/{Tilescan 1}/
   --------/A/1/R1 (Converted)
   --------/A/1/R1/FLIM/Intensity (Ignored)
   --------------------/Fast Flim (Ignored)
@@ -253,34 +259,38 @@ In this case, no `zarr_name` can be provided.
     )
     ```
 
-### Supported Lif File Layouts
+### Supported Lif File Images Layouts
 
 The following image layout are supported:
 
 * Single Position Image
 
     ```text
-    /Project.lif
-    ----/Tilescan 1 (Simple Image)
+    /{Project.lif}
+    ----/{Tilescan 1} (Simple Image)
     ```
 
 * Multi Position Image
   
     ```text
-    /Project.lif
-    ----/Tilescan 1/
-    --------/Poisition 1 (Simple Image)
-    --------/Poisition 2 (Simple Image)
+    /{Project.lif}
+    ----/{Tilescan 1}/
+    --------/Position 1 (Simple Image)
+    --------/Position 2 (Simple Image)
     --------/...
     ```
 
 * Mosaique Image
   
     ```text
-    /Project.lif
-    ----/Tilescan 1 (Mosaic Image)
+    /{Project.lif}
+    ----/{Tilescan 1} (Mosaic Image)
     ```
 
-#### Edge cases
 
-* If the lif file contains scans that do not follow the above formats, the converter will ignore them.
+The names in curly braces `{}` can be freely chosen by the user. While
+the othe names must follow the following format:
+
+If the scene is a multi-position image, the positions must be named `Position` followed by a space and a positive integer. Valid examples are `Position 1`, `Position 2`, `Position 3`, `Position 12` etc.
+
+Moreover, if the lif file contains scans that do not follow the above formats, the converter will ignore them.
