@@ -52,7 +52,8 @@ def convert_lif_compute_task(
         t_chunk=init_args.advanced_options.t_chunk,
         # Since the init task already checks for overwriting, we can safely pass the
         # overwrite flag here.
-        # For future reference, we should consider checking for overwriting here as well.
+        # For future reference, we should consider checking for overwriting
+        # here as well.
         # If we allow for partial overwriting.
         overwrite=True,
     )

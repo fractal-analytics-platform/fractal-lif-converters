@@ -14,7 +14,7 @@ from fractal_converters_tools.tiled_image import (
 )
 from ngio.ngff_meta.fractal_image_meta import PixelSize
 from pydantic import BaseModel
-from readlif.reader import LifFile, LifImage
+from readlif.reader import LifFile
 from readlif.utilities import get_xml
 
 
@@ -112,18 +112,7 @@ class LifTileLoader:
 def build_tiles_mosaic(
     lif_image, image_id, scale_m: float | None = None
 ) -> Generator[Tile, Any, None]:
-    """Build tiles for mosaic images.
-
-    1: "x",
-    2: "y",
-    3: "z",
-    4: "t",
-    5: "detection_wavelength",
-    6: "unknown",
-    7: "unknown",
-    9: "illumination_wavelength",
-    10: "mosaic_tile",
-    """
+    """Build tiles for mosaic images."""
     shape_x = lif_image.dims_n.get(1, 1)
     shape_y = lif_image.dims_n.get(2, 1)
     shape_t = lif_image.dims_n.get(4, 1)
@@ -264,7 +253,7 @@ def find_tile_infos(path: str, name: str):
     return tiles[0], flipx, flipy, swap_xy
 
 
-def build_single_tile(lif_image, image_id):
+def build_single_tile(lif_image, image_id, scale_m: float | None = None) -> Tile:
     """Build a tile for single images."""
     shape_x = lif_image.dims_n.get(1, 1)
     shape_y = lif_image.dims_n.get(2, 1)
@@ -278,7 +267,9 @@ def build_single_tile(lif_image, image_id):
     scale_y = 1 / lif_image.scale_n.get(2, 1)
     scale_z = 1 / lif_image.scale_n.get(3, 1)
     scale_t = 1  # lif_image.scale_n.get(4, 1)
-    scale_m = lif_image.scale_n.get(10, 1e-6)
+
+    if scale_m is None:
+        scale_m = lif_image.scale_n.get(10, 1e-6)
 
     length_x = shape_x * scale_x
     length_y = shape_y * scale_y
@@ -320,13 +311,38 @@ def build_single_tile(lif_image, image_id):
     return tile
 
 
+def _collect_mosaic(
+    lif_file: LifFile,
+    image_infos: list[ImageInPlateInfo],
+    channel_names: list[str] | None,
+    channel_wavelengths: list[str] | None,
+    scale_m: float | None = None,
+    path_builder: PlatePathBuilder | SimplePathBuilder | None = None,
+) -> dict[str, TiledImage]:
+    if len(image_infos) != 1:
+        raise ValueError(
+            "Only one mosaic image is expected. Multi-mosaic is not supported."
+        )
+    image_info = image_infos[0]
+    lif_image = lif_file.get_image(image_info.image_id)
+    tiled_image = TiledImage(
+        name=lif_image.filename,
+        path_builder=path_builder,
+        channel_names=channel_names,
+        wavelength_ids=channel_wavelengths,
+    )
+    for tile in build_tiles_mosaic(lif_image, image_info.image_id, scale_m):
+        tiled_image.add_tile(tile)
+
+    return tiled_image
+
+
 def collect_plate_acq_mosaic(
     lif_file: LifFile,
     image_infos: list[ImageInPlateInfo],
     plate_name: str,
     channel_names: list[str] | None,
     channel_wavelengths,
-    num_levels,
     scale_m: float | None = None,
 ) -> dict[str, TiledImage]:
     """Collect tiled images for mosaic acquisitions."""
@@ -341,15 +357,61 @@ def collect_plate_acq_mosaic(
         column=int(image_info.column),
         acquisition_id=image_info.acquisition_id,
     )
+    return _collect_mosaic(
+        lif_file=lif_file,
+        image_infos=image_infos,
+        channel_names=channel_names,
+        channel_wavelengths=channel_wavelengths,
+        path_builder=path_builder,
+        scale_m=scale_m,
+    )
+
+
+def collect_single_acq_mosaic(
+    lif_file: LifFile,
+    image_infos: list[ImageInfo],
+    zarr_name: str,
+    channel_names: list[str] | None,
+    channel_wavelengths: list[str] | None,
+    scale_m: float | None = None,
+) -> dict[str, TiledImage]:
+    """Collect tiled images for single mosaic acquisitions."""
+    path_builder = SimplePathBuilder(
+        path=zarr_name,
+    )
+    if len(image_infos) != 1:
+        raise ValueError(
+            "Only one mosaic image is expected. Multi-mosaic is not supported."
+        )
+    return _collect_mosaic(
+        lif_file=lif_file,
+        image_infos=image_infos,
+        channel_names=channel_names,
+        channel_wavelengths=channel_wavelengths,
+        path_builder=path_builder,
+        scale_m=scale_m,
+    )
+
+
+def _collect_single(
+    lif_file: LifFile,
+    image_infos: list[ImageInPlateInfo],
+    channel_names: list[str] | None,
+    channel_wavelengths: list[str] | None,
+    scale_m: float | None = None,
+    path_builder: PlatePathBuilder | SimplePathBuilder | None = None,
+) -> dict[str, TiledImage]:
+    image_info = image_infos[0]
     lif_image = lif_file.get_image(image_info.image_id)
     tiled_image = TiledImage(
         name=lif_image.filename,
         path_builder=path_builder,
         channel_names=channel_names,
         wavelength_ids=channel_wavelengths,
-        num_levels=num_levels,
     )
-    for tile in build_tiles_mosaic(lif_image, image_info.image_id, scale_m):
+    for info in image_infos:
+        lif_image = lif_file.get_image(info.image_id)
+        tile = build_single_tile(lif_image, info.image_id, scale_m)
         tiled_image.add_tile(tile)
 
     return tiled_image
@@ -361,7 +423,7 @@ def collect_plate_acq_single(
     plate_name: str,
     channel_names: list[str] | None,
     channel_wavelengths,
-    num_levels,
+    scale_m: float | None = None,
 ) -> dict[str, TiledImage]:
     """Collect tiled images for single acquisitions."""
     if len(image_infos) == 0:
@@ -374,54 +436,36 @@ def collect_plate_acq_single(
         column=int(image_info.column),
         acquisition_id=image_info.acquisition_id,
     )
-    lif_image = lif_file.get_image(image_info.image_id)
-    tiled_image = TiledImage(
-        name=lif_image.filename,
-        path_builder=path_builder,
+    return _collect_single(
+        lif_file=lif_file,
+        image_infos=image_infos,
         channel_names=channel_names,
-        wavelength_ids=channel_wavelengths,
-        num_levels=num_levels,
-    )
-    for info in image_infos:
-        lif_image = lif_file.get_image(info.image_id)
-        tile = build_single_tile(lif_image, info.image_id)
-        tiled_image.add_tile(tile)
-
-    return tiled_image
-
-
-def collect_single_acq_mosaic(
-    lif_image: LifImage,
-    image_info: ImageInfo,
-    zarr_name: str,
-    channel_names: list[str] | None,
-    channel_wavelengths,
-    num_levels,
-    scale_m: float | None = None,
-) -> dict[str, TiledImage]:
-    """Collect tiled images for single mosaic acquisitions."""
-    path_builder = SimplePathBuilder(
-        path=zarr_name,
-    )
-    tiled_image = TiledImage(
-        name=lif_image.filename,
+        channel_wavelengths=channel_wavelengths,
         path_builder=path_builder,
-        channel_names=channel_names,
-        wavelength_ids=channel_wavelengths,
-        num_levels=num_levels,
+        scale_m=scale_m,
     )
-    for tile in build_tiles_mosaic(lif_image, image_info.image_id, scale_m):
-        tiled_image.add_tile(tile)
-
-    return tiled_image
 
 
 def collect_single_acq_single(
-    lif_image: LifImage,
-    image_info: ImageInfo,
+    lif_file: LifFile,
+    image_infos: list[ImageInfo],
     zarr_name: str,
     channel_names: list[str] | None,
-    channel_wavelengths,
-    num_levels,
+    channel_wavelengths: list[str] | None,
+    scale_m: float | None = None,
 ) -> dict[str, TiledImage]:
-    raise NotImplementedError
+    """Collect tiled images for single acquisitions."""
+    if len(image_infos) == 0:
+        raise ValueError("No images found for the given tile id.")
+
+    path_builder = SimplePathBuilder(
+        path=zarr_name,
+    )
+    return _collect_single(
+        lif_file=lif_file,
+        image_infos=image_infos,
+        channel_names=channel_names,
+        channel_wavelengths=channel_wavelengths,
+        path_builder=path_builder,
+        scale_m=scale_m,
+    )

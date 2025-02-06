@@ -152,14 +152,13 @@ def group_by_tile_id(
     return list(tile_id_to_images.values())
 
 
-def parse_lif_metadata(
+def parse_lif_plate_metadata(
     lif_path: str | Path,
     scan_name: str | None = None,
     plate_name: str | None = None,
     acquisition_id: int = 0,
     channel_names: list[str] | None = None,
     channel_wavelengths: list[str] | None = None,
-    num_levels: int = 1,
 ) -> dict[str, TiledImage]:
     """Parse lif metadata."""
     if scan_name is None and plate_name is not None:
@@ -174,8 +173,10 @@ def parse_lif_metadata(
     tiled_images = {}
     for scan_name, image_infos in plates.items():
         if plate_name is None:
-            plate_name = f"{Path(lif_path).stem}_{scan_name}"
-            plate_name = plate_name.replace(" ", "_")
+            _plate_name = f"{Path(lif_path).stem}_{scan_name}"
+            _plate_name = _plate_name.replace(" ", "_")
+        else:
+            _plate_name = plate_name
 
         for list_image_infos in group_by_tile_id(image_infos):
             if len(list_image_infos) == 0:
@@ -186,19 +187,17 @@ def parse_lif_metadata(
                     _tiled_image = collect_plate_acq_single(
                         lif_file=lif_file,
                         image_infos=list_image_infos,
-                        plate_name=plate_name,
+                        plate_name=_plate_name,
                         channel_names=channel_names,
                         channel_wavelengths=channel_wavelengths,
-                        num_levels=num_levels,
                     )
                 case ImageType.MOSAIC:
                     _tiled_image = collect_plate_acq_mosaic(
                         lif_file=lif_file,
                         image_infos=list_image_infos,
-                        plate_name=plate_name,
+                        plate_name=_plate_name,
                         channel_names=channel_names,
                         channel_wavelengths=channel_wavelengths,
-                        num_levels=num_levels,
                     )
             unique_id = f"{plate_name}_{list_image_infos[0].tile_id}"
             tiled_images[unique_id] = _tiled_image

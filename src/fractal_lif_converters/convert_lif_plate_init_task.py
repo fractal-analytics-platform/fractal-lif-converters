@@ -8,7 +8,7 @@ from typing import Literal, Optional
 from fractal_converters_tools.omezarr_plate_writers import initiate_ome_zarr_plates
 from pydantic import BaseModel, Field, validate_call
 
-from fractal_lif_converters.plate_parser import parse_lif_metadata
+from fractal_lif_converters.plate_parser import parse_lif_plate_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def convert_lif_plate_init_task(
         plate_name = acq.plate_name
         scan_name = acq.tile_scan_name
 
-        _tiled_images = parse_lif_metadata(
+        _tiled_images = parse_lif_plate_metadata(
             acq_path,
             scan_name=scan_name,
             plate_name=plate_name,
