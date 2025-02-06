@@ -1,18 +1,66 @@
-"""This task converts simple H5 files to OME-Zarr."""
+"""ScanR to OME-Zarr conversion task initialization."""
 
+import logging
+import pickle
 from pathlib import Path
+from typing import Literal, Optional
 
-import bioio_lif
-from bioio import BioImage
-from fractal_tasks_core.utils import logger
-from pydantic import Field, validate_call
+from fractal_converters_tools.omezarr_plate_writers import initiate_ome_zarr_plates
+from pydantic import BaseModel, Field, validate_call
 
-from fractal_lif_converters.convert_lif_compute_task import ComputeInputModel
-from fractal_lif_converters.utils import (
-    LifFormatNotSupported,
-    TimeSeriesNotSupported,
-    setup_plate_ome_zarr,
-)
+from fractal_lif_converters.plate_parser import parse_lif_metadata
+
+logger = logging.getLogger(__name__)
+
+
+class LifPlateInputModel(BaseModel):
+    """Acquisition metadata.
+
+    Attributes:
+        path: Path to the acquisition directory.
+            For scanr, this should include a 'data/' directory with the tiff files
+            and a metadata.ome.xml file.
+        plate_name: Optional custom name for the plate. If not provided, the name will
+            be the acquisition directory name.
+        acquisition_id: Acquisition ID,
+            used to identify the acquisition in case of multiple acquisitions.
+    """
+
+    path: str
+    tile_scan_name: Optional[str] = None
+    plate_name: Optional[str] = None
+    acquisition_id: int = Field(default=0, ge=0)
+
+
+class AdvancedOptions(BaseModel):
+    """Advanced options for the conversion.
+
+    Attributes:
+        tiling_mode (Literal["auto", "grid", "free", "none"]): Specify the tiling mode.
+            "auto" will automatically determine the tiling mode.
+            "grid" if the input data is a grid, it will be tiled using snap-to-grid.
+            "free" will remove any overlap between tiles using a snap-to-corner
+            approach.
+        swap_xy (bool): Swap x and y axes coordinates in the metadata. This is sometimes
+            necessary to ensure correct image tiling and registration.
+        invert_x (bool): Invert x axis coordinates in the metadata. This is
+            sometimes necessary to ensure correct image tiling and registration.
+        invert_y (bool): Invert y axis coordinates in the metadata. This is
+            sometimes necessary to ensure correct image tiling and registration.
+
+    """
+
+    tiling_mode: Literal["auto", "grid", "free", "none"] = "auto"
+    swap_xy: bool = False
+    invert_x: bool = False
+    invert_y: bool = False
+
+
+class ConvertLifInitArgs(BaseModel):
+    """Arguments for the compute task."""
+
+    tiled_image_pickled_path: str
+    advanced_options: AdvancedOptions = Field(default_factory=AdvancedOptions)
 
 
 @validate_call
@@ -22,89 +70,86 @@ def convert_lif_plate_init_task(
     zarr_urls: list[str],
     zarr_dir: str,
     # Task parameters
-    lif_files_path: str,
-    swap_xy_axes: bool = False,
-    num_levels: int = Field(default=5, ge=0),
-    coarsening_xy: int = Field(default=2, ge=1),
+    acquisitions: list[LifPlateInputModel],
     overwrite: bool = False,
+    advanced_options: AdvancedOptions = AdvancedOptions(),  # noqa: B008
 ):
-    """Initialize the conversion of LIF files to an OME-Zarr - Plate.
+    """Initialize the LIF Plate to OME-Zarr conversion task.
 
     Args:
-        zarr_urls (list[str]): List of zarr urls.
-        zarr_dir (str): Output path to save the OME-Zarr file.
-        lif_files_path (str): Input path to the LIF file,
-            or a folder containing LIF files.
-        swap_xy_axes (bool): If True, the xy axes will be swapped. Defaults to False.
-        num_levels (int): The number of resolution levels. Defaults to 5.
-        coarsening_xy (float): The scaling factor for the xy axes. Defaults to 2.0.
-        overwrite (bool): If True, the zarr store will be overwritten.
+        zarr_urls (list[str]): List of Zarr URLs.
+        zarr_dir (str): Directory to store the Zarr files.
+        acquisitions (list[AcquisitionInputModel]): List of raw acquisitions to convert
+            to OME-Zarr.
+        overwrite (bool): Overwrite existing Zarr files.
+        advanced_options (AdvancedOptions): Advanced options for the conversion.
     """
-    lif_files_path = Path(lif_files_path)
+    if not acquisitions:
+        raise ValueError("No acquisitions provided.")
+
     zarr_dir = Path(zarr_dir)
-    zarr_dir.mkdir(exist_ok=True, parents=True)
 
-    if not lif_files_path.exists():
-        raise FileNotFoundError(f"{lif_files_path} does not exist")
+    if not zarr_dir.exists():
+        logger.info(f"Creating directory: {zarr_dir}")
+        zarr_dir.mkdir(parents=True)
 
-    if lif_files_path.is_dir():
-        all_lif_files = list(lif_files_path.glob("*.lif"))
-    elif lif_files_path.is_file():
-        all_lif_files = [lif_files_path]
-    else:
-        raise ValueError(f"{lif_files_path} is not a file or a folder")
+    # prepare the parallel list of zarr urls
+    tiled_images, parallelization_list = [], []
+    for acq in acquisitions:
+        acq_path = Path(acq.path)
+        plate_name = acq.plate_name
+        scan_name = acq.tile_scan_name
 
-    parallelization_list = []
+        _tiled_images = parse_lif_metadata(
+            acq_path,
+            scan_name=scan_name,
+            plate_name=plate_name,
+            acquisition_id=acq.acquisition_id,
+        )
 
-    for lif_path in all_lif_files:
-        img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
-        zarr_path = zarr_dir / f"{lif_path.stem}.zarr"
-        img_bio = BioImage(lif_path, reader=bioio_lif.Reader)
-        zarr_path = zarr_dir / f"{lif_path.stem}.zarr"
-
-        try:
-            # TODO create an error for time series
-            if img_bio.dims.T > 1:
-                raise TimeSeriesNotSupported("Time dimension greater than 1")
-
-            setup_plate_ome_zarr(
-                zarr_path=zarr_path,
-                img_bio=img_bio,
-                num_levels=num_levels,
-                coarsening_xy=coarsening_xy,
-                overwrite=overwrite,
-            )
-
-            for scene_name in img_bio.scenes:
-                task_kwargs = {
-                    "zarr_url": str(zarr_path),
-                    "init_args": ComputeInputModel(
-                        lif_path=str(lif_path),
-                        scene_name=scene_name,
-                        num_levels=num_levels,
-                        coarsening_xy=coarsening_xy,
-                        overwrite=overwrite,
-                        plate_mode=True,
-                        swap_xy_axes=swap_xy_axes,
-                    ).model_dump(),
-                }
-                parallelization_list.append(task_kwargs)
-                logger.info(
-                    f"{lif_path} - {scene_name} added to the parallelization list."
-                )
-
-        except TimeSeriesNotSupported as e:
-            logger.warning(f"skipping {lif_path}: {e}")
+        if not _tiled_images:
+            logger.warning(f"No images found in {acq_path}")
             continue
 
-        except LifFormatNotSupported as e:
-            logger.warning(f"skipping {lif_path}: {e}")
+        logger.info(f"Found {len(_tiled_images)} images in {acq_path})")
+        for tile_id, tiled_image in _tiled_images.items():
+            # pickle the tiled_image
+            tile_id_pickle_path = (
+                zarr_dir
+                / f"_tmp_{tiled_image.path_builder.plate_path}"
+                / f"{tile_id}.pickle"
+            )
+            tile_id_pickle_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"Found {len(parallelization_list)} scenes to convert.")
+            with open(tile_id_pickle_path, "wb") as f:
+                pickle.dump(tiled_image, f)
+
+            parallelization_list.append(
+                {
+                    "zarr_url": str(zarr_dir),
+                    "init_args": ConvertLifInitArgs(
+                        tiled_image_pickled_path=str(tile_id_pickle_path),
+                        advanced_options=advanced_options,
+                    ).model_dump(),
+                }
+            )
+        tiled_images.extend(list(_tiled_images.values()))
+
+    if not tiled_images:
+        raise ValueError("No images found in the acquisitions.")
+
+    logger.info(f"Total {len(parallelization_list)} images to convert.")
+
+    initiate_ome_zarr_plates(
+        store=zarr_dir,
+        tiled_images=tiled_images,
+        overwrite=overwrite,
+    )
+    logger.info(f"Initialized OME-Zarr Plate at: {zarr_dir}")
     return {"parallelization_list": parallelization_list}
 
 
 if __name__ == "__main__":
     from fractal_tasks_core.tasks._utils import run_fractal_task
 
-    run_fractal_task(task_function=convert_lif_plate_init_task)
+    run_fractal_task(task_function=convert_lif_plate_init_task, logger_name=logger.name)

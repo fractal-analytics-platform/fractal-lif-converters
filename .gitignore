@@ -120,3 +120,4 @@ exports/
 # pixi environments
 .pixi
 *.egg-info
+pixi.lock
