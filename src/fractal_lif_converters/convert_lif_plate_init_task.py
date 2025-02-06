@@ -41,19 +41,30 @@ class AdvancedOptions(BaseModel):
             "grid" if the input data is a grid, it will be tiled using snap-to-grid.
             "free" will remove any overlap between tiles using a snap-to-corner
             approach.
+            "none" will write the positions as is, using the microscope metadata.
         swap_xy (bool): Swap x and y axes coordinates in the metadata. This is sometimes
             necessary to ensure correct image tiling and registration.
         invert_x (bool): Invert x axis coordinates in the metadata. This is
             sometimes necessary to ensure correct image tiling and registration.
         invert_y (bool): Invert y axis coordinates in the metadata. This is
             sometimes necessary to ensure correct image tiling and registration.
-
+        num_levels (int): Number of resolution levels in the OME-Zarr file.
+        max_xy_chunk (int): XY chunk size is set as the minimum of this value and the
+            microscope tile size.
+        z_chunk (int): Z chunk size.
+        c_chunk (int): C chunk size.
+        t_chunk (int): T chunk size
     """
 
     tiling_mode: Literal["auto", "grid", "free", "none"] = "auto"
     swap_xy: bool = False
     invert_x: bool = False
     invert_y: bool = False
+    num_levels: int = Field(default=5, ge=1)
+    max_xy_chunk: int = Field(default=4096, ge=1)
+    z_chunk: int = Field(default=10, ge=1)
+    c_chunk: int = Field(default=1, ge=1)
+    t_chunk: int = Field(default=1, ge=1)
 
 
 class ConvertLifInitArgs(BaseModel):
@@ -141,7 +152,7 @@ def convert_lif_plate_init_task(
     logger.info(f"Total {len(parallelization_list)} images to convert.")
 
     initiate_ome_zarr_plates(
-        store=zarr_dir,
+        zarr_dir=zarr_dir,
         tiled_images=tiled_images,
         overwrite=overwrite,
     )

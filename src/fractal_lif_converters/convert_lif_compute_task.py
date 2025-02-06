@@ -45,6 +45,15 @@ def convert_lif_compute_task(
         zarr_dir=zarr_url,
         tiled_image=tiled_image,
         stiching_pipe=stitching_pipe,
+        num_levels=init_args.advanced_options.num_levels,
+        max_xy_chunk=init_args.advanced_options.max_xy_chunk,
+        z_chunk=init_args.advanced_options.z_chunk,
+        c_chunk=init_args.advanced_options.c_chunk,
+        t_chunk=init_args.advanced_options.t_chunk,
+        # Since the init task already checks for overwriting, we can safely pass the
+        # overwrite flag here.
+        # For future reference, we should consider checking for overwriting here as well.
+        # If we allow for partial overwriting.
         overwrite=True,
     )
 

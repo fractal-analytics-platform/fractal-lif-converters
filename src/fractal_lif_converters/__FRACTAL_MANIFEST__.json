@@ -49,6 +49,36 @@
                 "default": false,
                 "title": "Invert Y",
                 "type": "boolean"
+              },
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer"
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer"
               }
             },
             "title": "AdvancedOptions",
@@ -122,7 +152,12 @@
               "tiling_mode": "auto",
               "swap_xy": false,
               "invert_x": false,
-              "invert_y": false
+              "invert_y": false,
+              "num_levels": 5,
+              "max_xy_chunk": 4096,
+              "z_chunk": 10,
+              "c_chunk": 1,
+              "t_chunk": 1
             },
             "title": "Advanced Options",
             "description": "Advanced options for the conversion."
@@ -166,6 +201,36 @@
                 "default": false,
                 "title": "Invert Y",
                 "type": "boolean"
+              },
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer"
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer"
               }
             },
             "title": "AdvancedOptions",
