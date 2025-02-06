@@ -36,6 +36,7 @@ class AdvancedOptions(BaseModel):
     """Advanced options for the conversion.
 
     Attributes:
+        num_levels (int): The number of resolution levels in the pyramid.
         tiling_mode (Literal["auto", "grid", "free", "none"]): Specify the tiling mode.
             "auto" will automatically determine the tiling mode.
             "grid" if the input data is a grid, it will be tiled using snap-to-grid.
@@ -48,7 +49,6 @@ class AdvancedOptions(BaseModel):
             sometimes necessary to ensure correct image tiling and registration.
         invert_y (bool): Invert y axis coordinates in the metadata. This is
             sometimes necessary to ensure correct image tiling and registration.
-        num_levels (int): Number of resolution levels in the OME-Zarr file.
         max_xy_chunk (int): XY chunk size is set as the minimum of this value and the
             microscope tile size.
         z_chunk (int): Z chunk size.
@@ -56,15 +56,16 @@ class AdvancedOptions(BaseModel):
         t_chunk (int): T chunk size
     """
 
+    num_levels: int = Field(default=5, ge=1)
     tiling_mode: Literal["auto", "grid", "free", "none"] = "auto"
     swap_xy: bool = False
     invert_x: bool = False
     invert_y: bool = False
-    num_levels: int = Field(default=5, ge=1)
     max_xy_chunk: int = Field(default=4096, ge=1)
     z_chunk: int = Field(default=10, ge=1)
     c_chunk: int = Field(default=1, ge=1)
     t_chunk: int = Field(default=1, ge=1)
+    position_scale: Optional[float] = None
 
 
 class ConvertLifInitArgs(BaseModel):
@@ -116,8 +117,9 @@ def convert_lif_plate_init_task(
             scan_name=scan_name,
             plate_name=plate_name,
             acquisition_id=acq.acquisition_id,
+            scale_m=advanced_options.position_scale,
         )
-
+        
         if not _tiled_images:
             logger.warning(f"No images found in {acq_path}")
             continue

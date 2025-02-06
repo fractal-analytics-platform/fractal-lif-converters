@@ -159,6 +159,7 @@ def parse_lif_plate_metadata(
     acquisition_id: int = 0,
     channel_names: list[str] | None = None,
     channel_wavelengths: list[str] | None = None,
+    scale_m: float | None = None,
 ) -> dict[str, TiledImage]:
     """Parse lif metadata."""
     if scan_name is None and plate_name is not None:
@@ -190,6 +191,7 @@ def parse_lif_plate_metadata(
                         plate_name=_plate_name,
                         channel_names=channel_names,
                         channel_wavelengths=channel_wavelengths,
+                        scale_m=scale_m,
                     )
                 case ImageType.MOSAIC:
                     _tiled_image = collect_plate_acq_mosaic(
@@ -198,6 +200,7 @@ def parse_lif_plate_metadata(
                         plate_name=_plate_name,
                         channel_names=channel_names,
                         channel_wavelengths=channel_wavelengths,
+                        scale_m=scale_m,
                     )
             unique_id = f"{plate_name}_{list_image_infos[0].tile_id}"
             tiled_images[unique_id] = _tiled_image

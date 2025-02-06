@@ -24,6 +24,12 @@
           "AdvancedOptions": {
             "description": "Advanced options for the conversion.",
             "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
               "tiling_mode": {
                 "default": "auto",
                 "enum": [
@@ -50,12 +56,6 @@
                 "title": "Invert Y",
                 "type": "boolean"
               },
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer"
-              },
               "max_xy_chunk": {
                 "default": 4096,
                 "minimum": 1,
@@ -79,6 +79,10 @@
                 "minimum": 1,
                 "title": "T Chunk",
                 "type": "integer"
+              },
+              "position_scale": {
+                "title": "Position Scale",
+                "type": "number"
               }
             },
             "title": "AdvancedOptions",
@@ -149,15 +153,16 @@
               }
             ],
             "default": {
+              "num_levels": 5,
               "tiling_mode": "auto",
               "swap_xy": false,
               "invert_x": false,
               "invert_y": false,
-              "num_levels": 5,
               "max_xy_chunk": 4096,
               "z_chunk": 10,
               "c_chunk": 1,
-              "t_chunk": 1
+              "t_chunk": 1,
+              "position_scale": null
             },
             "title": "Advanced Options",
             "description": "Advanced options for the conversion."
@@ -176,6 +181,12 @@
           "AdvancedOptions": {
             "description": "Advanced options for the conversion.",
             "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
               "tiling_mode": {
                 "default": "auto",
                 "enum": [
@@ -202,12 +213,6 @@
                 "title": "Invert Y",
                 "type": "boolean"
               },
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer"
-              },
               "max_xy_chunk": {
                 "default": 4096,
                 "minimum": 1,
@@ -231,6 +236,10 @@
                 "minimum": 1,
                 "title": "T Chunk",
                 "type": "integer"
+              },
+              "position_scale": {
+                "title": "Position Scale",
+                "type": "number"
               }
             },
             "title": "AdvancedOptions",
