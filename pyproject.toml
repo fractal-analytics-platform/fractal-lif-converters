@@ -121,4 +121,6 @@ fractal-converters-tools = { path = "../fractal-converters-tools/", editable = t
 default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
 
-[tool.pixi.tasks]
+[tool.pixi.feature.dev.tasks]
+ruff-fix-imports = "ruff check --select I --fix"
+ruff = { cmd = "ruff format", depends-on = ["ruff-fix-imports"] }

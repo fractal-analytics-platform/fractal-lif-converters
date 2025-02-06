@@ -6,7 +6,7 @@ from functools import cache
 from typing import Any
 
 import numpy as np
-from fractal_converters_tools.tile import Point, Tile, Vector, OriginDict
+from fractal_converters_tools.tile import OriginDict, Point, Tile, Vector
 from fractal_converters_tools.tiled_image import (
     PlatePathBuilder,
     SimplePathBuilder,
