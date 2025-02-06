@@ -119,7 +119,7 @@ def convert_lif_plate_init_task(
             acquisition_id=acq.acquisition_id,
             scale_m=advanced_options.position_scale,
         )
-        
+
         if not _tiled_images:
             logger.warning(f"No images found in {acq_path}")
             continue
