@@ -6,6 +6,11 @@ from fractal_tasks_core.dev.create_manifest import create_manifest
 
 custom_pydantic_models = [
     ("fractal_lif_converters", "convert_lif_plate_init_task.py", "LifPlateInputModel"),
+    (
+        "fractal_lif_converters",
+        "convert_lif_single_acq_init_task.py",
+        "LifSingleAcqInputModel",
+    ),
     ("fractal_lif_converters", "convert_lif_plate_init_task.py", "AdvancedOptions"),
 ]
 

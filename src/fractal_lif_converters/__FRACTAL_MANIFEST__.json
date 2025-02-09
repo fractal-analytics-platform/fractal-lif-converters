@@ -302,6 +302,300 @@
       },
       "docs_info": "## convert_lif_plate_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
+    },
+    {
+      "name": "Convert Lif Scene to OME-Zarr",
+      "category": "Conversion",
+      "tags": [
+        "Leica",
+        "Single Image Converter"
+      ],
+      "executable_non_parallel": "convert_lif_single_acq_init_task.py",
+      "executable_parallel": "convert_lif_compute_task.py",
+      "meta_non_parallel": {
+        "cpus_per_task": 1,
+        "mem": 4000
+      },
+      "meta_parallel": {
+        "cpus_per_task": 1,
+        "mem": 12000
+      },
+      "args_schema_non_parallel": {
+        "$defs": {
+          "AdvancedOptions": {
+            "description": "Advanced options for the conversion.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer",
+                "description": "The number of resolution levels in the pyramid."
+              },
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string",
+                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean",
+                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean",
+                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean",
+                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer",
+                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer",
+                "description": "Z chunk size."
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer",
+                "description": "C chunk size."
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer",
+                "description": "T chunk size."
+              },
+              "position_scale": {
+                "title": "Position Scale",
+                "type": "number",
+                "description": "Scale factor for the position coordinates."
+              }
+            },
+            "title": "AdvancedOptions",
+            "type": "object"
+          },
+          "LifSingleAcqInputModel": {
+            "description": "Acquisition metadata.",
+            "properties": {
+              "path": {
+                "title": "Path",
+                "type": "string",
+                "description": "Path to the lif file."
+              },
+              "tile_scan_name": {
+                "title": "Tile Scan Name",
+                "type": "string",
+                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
+              },
+              "zarr_name": {
+                "title": "Zarr Name",
+                "type": "string",
+                "description": "Optional name of the Zarr file. If not provided, the name will be generated from the lif file name + tile scan name. If the tile scan name is not provided, theis field can not be used."
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "LifSingleAcqInputModel",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "zarr_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Zarr Urls",
+            "type": "array",
+            "description": "List of Zarr URLs."
+          },
+          "zarr_dir": {
+            "title": "Zarr Dir",
+            "type": "string",
+            "description": "Directory to store the Zarr files."
+          },
+          "acquisitions": {
+            "items": {
+              "$ref": "#/$defs/LifSingleAcqInputModel"
+            },
+            "title": "Acquisitions",
+            "type": "array",
+            "description": "List of raw acquisitions to convert to OME-Zarr."
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean",
+            "description": "Overwrite existing Zarr files."
+          },
+          "advanced_options": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/AdvancedOptions"
+              }
+            ],
+            "default": {
+              "num_levels": 5,
+              "tiling_mode": "auto",
+              "swap_xy": false,
+              "invert_x": false,
+              "invert_y": false,
+              "max_xy_chunk": 4096,
+              "z_chunk": 10,
+              "c_chunk": 1,
+              "t_chunk": 1,
+              "position_scale": null
+            },
+            "title": "Advanced Options",
+            "description": "Advanced options for the conversion."
+          }
+        },
+        "required": [
+          "zarr_urls",
+          "zarr_dir",
+          "acquisitions"
+        ],
+        "type": "object",
+        "title": "ConvertLifSingleAcqInitTask"
+      },
+      "args_schema_parallel": {
+        "$defs": {
+          "AdvancedComputeOptions": {
+            "description": "Advanced options for the conversion.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string"
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean"
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean"
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean"
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer"
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer"
+              }
+            },
+            "title": "AdvancedComputeOptions",
+            "type": "object"
+          },
+          "ConvertParallelInitArgs": {
+            "description": "Arguments for the compute task.",
+            "properties": {
+              "tiled_image_pickled_path": {
+                "title": "Tiled Image Pickled Path",
+                "type": "string"
+              },
+              "overwrite": {
+                "title": "Overwrite",
+                "type": "boolean"
+              },
+              "advanced_compute_options": {
+                "$ref": "#/$defs/AdvancedComputeOptions",
+                "title": "Advanced_Compute_Options"
+              }
+            },
+            "required": [
+              "tiled_image_pickled_path",
+              "overwrite",
+              "advanced_compute_options"
+            ],
+            "title": "ConvertParallelInitArgs",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "zarr_url": {
+            "title": "Zarr Url",
+            "type": "string",
+            "description": "URL to the OME-Zarr file."
+          },
+          "init_args": {
+            "$ref": "#/$defs/ConvertParallelInitArgs",
+            "title": "Init Args",
+            "description": "Arguments for the initialization task."
+          }
+        },
+        "required": [
+          "zarr_url",
+          "init_args"
+        ],
+        "type": "object",
+        "title": "ConvertLifComputeTask"
+      },
+      "docs_info": "## convert_lif_single_acq_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
+      "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     }
   ],
   "has_args_schemas": true,
