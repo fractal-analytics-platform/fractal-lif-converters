@@ -15,6 +15,7 @@ TASK_LIST = [
             "Leica",
             "Plate converter",
         ],
+        docs_info="file:docs_info/lif_plate_task.md",
     ),
     CompoundTask(
         name="Convert Lif Scene to OME-Zarr",
@@ -27,5 +28,6 @@ TASK_LIST = [
             "Leica",
             "Single Image Converter",
         ],
+        docs_info="file:docs_info/lif_single_acq_task.md",
     ),
 ]

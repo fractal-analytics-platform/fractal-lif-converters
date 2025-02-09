@@ -9,6 +9,7 @@
         "Leica",
         "Plate converter"
       ],
+      "docs_info": "### Purpose\n\n- Convert a Leica LIF plate to a OME-Zarr Plate.\n\n### Outputs\n\n- A OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Leica LIF acquisitions.\n- This converter is does not support images exported in auto-saved mode.\n\n### Expected inputs\n\nThe following plate layout are supported:\n\n* Single Position Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1 (Simple Image)\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1 (Simple Image)\n    --------/...\n    ```\n\n* Multi Position Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1\n    ----------------/R1 (Simple Image)\n    ----------------/R2 (Simple Image)\n    ----------------/...\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1\n    ------------/R1 (Simple Image)\n    ------------/R2 (Simple Image)\n    ------------/...\n    ```\n\n* Mosaique Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1 (Mosaic Image)\n    ------------/...\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1 (Mosaic Image)\n    --------/...\n    ```\n\nThe names in curly braces `{}` can be freely chosen by the user. \n\nWhile the othe names must follow the following format:\n\n* The well name must be a singe or duble letter followed by a positive integer.\nValid examples are `A1`, `A2`, `B1`, `AA1`, `AA12` etc.\n* Alternatively, the well can be hierarchically structured, for example `A/1`, `A/2`, `B/1`, `AA/1`, `AA/12` etc.\n* If the well is a multi-position well, the positions must be named `R` followed by a positive integer. Valid examples are `R1`, `R2`, `R3`, `R12` etc.\n* In case of more complex plate formats, for example FLIM  data, the converter will ignore the data that does not follow the above formats. For example:\n\n  ```text\n  /{Project.lif}\n  ----/{Tilescan 1}/\n  --------/A/1/R1 (Converted)\n  --------/A/1/R1/FLIM/Intensity (Ignored)\n  --------------------/Fast Flim (Ignored)\n  --------------------/Standard Deviation (Ignored)\n  ```\n\n",
       "executable_non_parallel": "convert_lif_plate_init_task.py",
       "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
@@ -300,7 +301,6 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_plate_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     },
     {
@@ -310,6 +310,7 @@
         "Leica",
         "Single Image Converter"
       ],
+      "docs_info": "### Purpose\n\n- Convert a Leica LIF acquisition to a OME-Zarr Image.\n\n### Outputs\n\n- A OME-Zarr Image.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Leica LIF acquisitions.\n- This converter is does not support images exported in auto-saved mode.\n\n### Expected inputs\n\nThe following image layout are supported:\n\n* Single Position Image\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1} (Simple Image)\n    ```\n\n* Multi Position Image\n  \n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/Position 1 (Simple Image)\n    --------/Position 2 (Simple Image)\n    --------/...\n    ```\n\n* Mosaique Image\n  \n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1} (Mosaic Image)\n    ```\n\n\nThe names in curly braces `{}` can be freely chosen by the user. While\nthe othe names must follow the following format:\n\nIf the scene is a multi-position image, the positions must be named `Position` followed by a space and a positive integer. Valid examples are `Position 1`, `Position 2`, `Position 3`, `Position 12` etc.\n\nMoreover, if the lif file contains scans that do not follow the above formats, the converter will ignore them.\n",
       "executable_non_parallel": "convert_lif_single_acq_init_task.py",
       "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
@@ -594,7 +595,6 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_single_acq_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     }
   ],
