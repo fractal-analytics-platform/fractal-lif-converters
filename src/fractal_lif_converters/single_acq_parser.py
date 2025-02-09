@@ -101,7 +101,7 @@ def parse_lif_metadata(
     channel_names: list[str] | None = None,
     channel_wavelengths: list[str] | None = None,
     scale_m: float | None = None,
-) -> dict[str, TiledImage]:
+) -> list[TiledImage]:
     """Parse lif metadata."""
     if scan_name is None and zarr_name is not None:
         raise ValueError(
@@ -112,7 +112,7 @@ def parse_lif_metadata(
     lif_file = LifFile(lif_path)
     images = _parse_lif_multi_infos(lif_file, scan_name)
 
-    tiled_images = {}
+    tiled_images = []
     for scan_name, image_infos in images.items():
         if zarr_name is None:
             _zarr_name = f"{Path(lif_path).stem}_{scan_name}"
@@ -140,6 +140,7 @@ def parse_lif_metadata(
                     channel_wavelengths=channel_wavelengths,
                     scale_m=scale_m,
                 )
-        unique_id = f"{zarr_name}_{image_infos[0].tile_id}"
-        tiled_images[unique_id] = _tiled_image
+            case _:
+                raise ValueError(f"Image type {_image_type} not supported.")
+        tiled_images.append(_tiled_image)
     return tiled_images

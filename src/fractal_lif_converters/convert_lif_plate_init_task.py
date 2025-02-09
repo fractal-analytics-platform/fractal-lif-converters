@@ -1,12 +1,15 @@
 """ScanR to OME-Zarr conversion task initialization."""
 
 import logging
-import pickle
 from pathlib import Path
 from typing import Literal, Optional
 
 from fractal_converters_tools.omezarr_plate_writers import initiate_ome_zarr_plates
-from pydantic import BaseModel, Field, validate_call
+from fractal_converters_tools.task_common_models import (
+    AdvancedComputeOptions,
+)
+from fractal_converters_tools.task_init_tools import build_parallelization_list
+from pydantic import BaseModel, Field, model_validator, validate_call
 
 from fractal_lif_converters.plate_parser import parse_lif_plate_metadata
 
@@ -17,13 +20,17 @@ class LifPlateInputModel(BaseModel):
     """Acquisition metadata.
 
     Attributes:
-        path: Path to the acquisition directory.
-            For scanr, this should include a 'data/' directory with the tiff files
-            and a metadata.ome.xml file.
-        plate_name: Optional custom name for the plate. If not provided, the name will
-            be the acquisition directory name.
-        acquisition_id: Acquisition ID,
-            used to identify the acquisition in case of multiple acquisitions.
+        path (str): Path to the lif file.
+        tile_scan_name (Optional[str]): Optional name of the tile scan.
+            If not provided, all tile scans will be considered.
+        plate_name (Optional[str]): Optional name of the plate.
+            If not provided, the plate name will be inferred from the
+            lif file + scan name.
+            If the tile scan name is not provided, this field can not be
+            used.
+        acquisition_id: Acquisition ID, used to identify multiple rounds
+            of acquisitions for the same plate.
+            If tile_scan_name is not provided, this field can not be used.
     """
 
     path: str
@@ -31,8 +38,26 @@ class LifPlateInputModel(BaseModel):
     plate_name: Optional[str] = None
     acquisition_id: int = Field(default=0, ge=0)
 
+    @model_validator(mode="after")
+    def check_plate_name(self):
+        """Check if the plate name/acquisition is provided correctly."""
+        if self.tile_scan_name is not None:
+            return self
 
-class AdvancedOptions(BaseModel):
+        if self.plate_name is not None:
+            raise ValueError(
+                "'plate_name' can only be used when 'tile_scan_name' is provided."
+            )
+
+        if self.acquisition_id != 0:
+            raise ValueError(
+                "'acquisition_id' can only be used when 'tile_scan_name' is provided."
+            )
+
+        return self
+
+
+class AdvancedOptions(AdvancedComputeOptions):
     """Advanced options for the conversion.
 
     Attributes:
@@ -53,26 +78,11 @@ class AdvancedOptions(BaseModel):
             microscope tile size.
         z_chunk (int): Z chunk size.
         c_chunk (int): C chunk size.
-        t_chunk (int): T chunk size
+        t_chunk (int): T chunk size.
+        position_scale (Optional[float]): Scale factor for the position coordinates.
     """
 
-    num_levels: int = Field(default=5, ge=1)
-    tiling_mode: Literal["auto", "grid", "free", "none"] = "auto"
-    swap_xy: bool = False
-    invert_x: bool = False
-    invert_y: bool = False
-    max_xy_chunk: int = Field(default=4096, ge=1)
-    z_chunk: int = Field(default=10, ge=1)
-    c_chunk: int = Field(default=1, ge=1)
-    t_chunk: int = Field(default=1, ge=1)
     position_scale: Optional[float] = None
-
-
-class ConvertLifInitArgs(BaseModel):
-    """Arguments for the compute task."""
-
-    tiled_image_pickled_path: str
-    advanced_options: AdvancedOptions = Field(default_factory=AdvancedOptions)
 
 
 @validate_call
@@ -106,16 +116,17 @@ def convert_lif_plate_init_task(
         zarr_dir.mkdir(parents=True)
 
     # prepare the parallel list of zarr urls
-    tiled_images, parallelization_list = [], []
+    tiled_images = []
     for acq in acquisitions:
         acq_path = Path(acq.path)
-        plate_name = acq.plate_name
-        scan_name = acq.tile_scan_name
+
+        if not acq_path.exists():
+            raise FileNotFoundError(f"File not found: {acq_path}")
 
         _tiled_images = parse_lif_plate_metadata(
             acq_path,
-            scan_name=scan_name,
-            plate_name=plate_name,
+            scan_name=acq.tile_scan_name,
+            plate_name=acq.plate_name,
             acquisition_id=acq.acquisition_id,
             scale_m=advanced_options.position_scale,
         )
@@ -123,34 +134,15 @@ def convert_lif_plate_init_task(
         if not _tiled_images:
             logger.warning(f"No images found in {acq_path}")
             continue
+        tiled_images.extend(list(_tiled_images))
 
-        logger.info(f"Found {len(_tiled_images)} images in {acq_path})")
-        for tile_id, tiled_image in _tiled_images.items():
-            # pickle the tiled_image
-            tile_id_pickle_path = (
-                zarr_dir
-                / f"_tmp_{tiled_image.path_builder.plate_path}"
-                / f"{tile_id}.pickle"
-            )
-            tile_id_pickle_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(tile_id_pickle_path, "wb") as f:
-                pickle.dump(tiled_image, f)
-
-            parallelization_list.append(
-                {
-                    "zarr_url": str(zarr_dir),
-                    "init_args": ConvertLifInitArgs(
-                        tiled_image_pickled_path=str(tile_id_pickle_path),
-                        advanced_options=advanced_options,
-                    ).model_dump(),
-                }
-            )
-        tiled_images.extend(list(_tiled_images.values()))
-
-    if not tiled_images:
-        raise ValueError("No images found in the acquisitions.")
-
+    # Common fractal-converters-tools functions
+    parallelization_list = build_parallelization_list(
+        zarr_dir=zarr_dir,
+        tiled_images=tiled_images,
+        overwrite=overwrite,
+        advanced_compute_options=advanced_options,
+    )
     logger.info(f"Total {len(parallelization_list)} images to convert.")
 
     initiate_ome_zarr_plates(

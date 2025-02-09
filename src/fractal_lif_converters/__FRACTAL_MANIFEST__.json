@@ -28,7 +28,8 @@
                 "default": 5,
                 "minimum": 1,
                 "title": "Num Levels",
-                "type": "integer"
+                "type": "integer",
+                "description": "The number of resolution levels in the pyramid."
               },
               "tiling_mode": {
                 "default": "auto",
@@ -39,50 +40,59 @@
                   "none"
                 ],
                 "title": "Tiling Mode",
-                "type": "string"
+                "type": "string",
+                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
               },
               "swap_xy": {
                 "default": false,
                 "title": "Swap Xy",
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
               },
               "invert_x": {
                 "default": false,
                 "title": "Invert X",
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
               },
               "invert_y": {
                 "default": false,
                 "title": "Invert Y",
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
               },
               "max_xy_chunk": {
                 "default": 4096,
                 "minimum": 1,
                 "title": "Max Xy Chunk",
-                "type": "integer"
+                "type": "integer",
+                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
               },
               "z_chunk": {
                 "default": 10,
                 "minimum": 1,
                 "title": "Z Chunk",
-                "type": "integer"
+                "type": "integer",
+                "description": "Z chunk size."
               },
               "c_chunk": {
                 "default": 1,
                 "minimum": 1,
                 "title": "C Chunk",
-                "type": "integer"
+                "type": "integer",
+                "description": "C chunk size."
               },
               "t_chunk": {
                 "default": 1,
                 "minimum": 1,
                 "title": "T Chunk",
-                "type": "integer"
+                "type": "integer",
+                "description": "T chunk size."
               },
               "position_scale": {
                 "title": "Position Scale",
-                "type": "number"
+                "type": "number",
+                "description": "Scale factor for the position coordinates."
               }
             },
             "title": "AdvancedOptions",
@@ -93,21 +103,25 @@
             "properties": {
               "path": {
                 "title": "Path",
-                "type": "string"
+                "type": "string",
+                "description": "Path to the lif file."
               },
               "tile_scan_name": {
                 "title": "Tile Scan Name",
-                "type": "string"
+                "type": "string",
+                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
               },
               "plate_name": {
                 "title": "Plate Name",
-                "type": "string"
+                "type": "string",
+                "description": "Optional name of the plate. If not provided, the plate name will be inferred from the lif file + scan name. If the tile scan name is not provided, this field can not be used."
               },
               "acquisition_id": {
                 "default": 0,
                 "minimum": 0,
                 "title": "Acquisition Id",
-                "type": "integer"
+                "type": "integer",
+                "description": "Acquisition ID, used to identify multiple rounds of acquisitions for the same plate. If tile_scan_name is not provided, this field can not be used."
               }
             },
             "required": [
@@ -178,7 +192,7 @@
       },
       "args_schema_parallel": {
         "$defs": {
-          "AdvancedOptions": {
+          "AdvancedComputeOptions": {
             "description": "Advanced options for the conversion.",
             "properties": {
               "num_levels": {
@@ -236,31 +250,33 @@
                 "minimum": 1,
                 "title": "T Chunk",
                 "type": "integer"
-              },
-              "position_scale": {
-                "title": "Position Scale",
-                "type": "number"
               }
             },
-            "title": "AdvancedOptions",
+            "title": "AdvancedComputeOptions",
             "type": "object"
           },
-          "ConvertLifInitArgs": {
+          "ConvertParallelInitArgs": {
             "description": "Arguments for the compute task.",
             "properties": {
               "tiled_image_pickled_path": {
                 "title": "Tiled Image Pickled Path",
                 "type": "string"
               },
-              "advanced_options": {
-                "$ref": "#/$defs/AdvancedOptions",
-                "title": "Advanced_Options"
+              "overwrite": {
+                "title": "Overwrite",
+                "type": "boolean"
+              },
+              "advanced_compute_options": {
+                "$ref": "#/$defs/AdvancedComputeOptions",
+                "title": "Advanced_Compute_Options"
               }
             },
             "required": [
-              "tiled_image_pickled_path"
+              "tiled_image_pickled_path",
+              "overwrite",
+              "advanced_compute_options"
             ],
-            "title": "ConvertLifInitArgs",
+            "title": "ConvertParallelInitArgs",
             "type": "object"
           }
         },
@@ -272,7 +288,7 @@
             "description": "URL to the OME-Zarr file."
           },
           "init_args": {
-            "$ref": "#/$defs/ConvertLifInitArgs",
+            "$ref": "#/$defs/ConvertParallelInitArgs",
             "title": "Init Args",
             "description": "Arguments for the initialization task."
           }
