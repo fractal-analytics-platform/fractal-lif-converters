@@ -1,6 +1,6 @@
 """Module for parsing LIF files with plate scans."""
 
-from pathlib import Path
+from pathlib import Path  # noqa: I001
 
 from fractal_converters_tools.tiled_image import (
     TiledImage,
@@ -9,6 +9,7 @@ from readlif.reader import LifFile
 
 from fractal_lif_converters.string_validation import (
     validate_position_name_type2,
+    validate_position_name_type1,
 )
 from fractal_lif_converters.tile_builders import (
     ImageInfo,
@@ -16,39 +17,47 @@ from fractal_lif_converters.tile_builders import (
     collect_single_acq_mosaic,
     collect_single_acq_single,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def _parse_lif_infos(lif_file: LifFile, scan_name: str) -> list[ImageInfo]:
-    """Parse Lif file and return image information."""
+def _simple_parse_lif_infos(
+    lif_file: LifFile, scan_name: str
+) -> tuple[dict[str, list[ImageInfo]], set[str]]:
     images = []
-    _scan_names = []
+
+    discarder_images = []
+    _sanitized_scan_name = scan_name.replace(" ", "_")
+    _sanitized_scan_name = _sanitized_scan_name.replace("/", "_")
+
     for image_id, meta in enumerate(lif_file.image_list):
         name = meta["name"]
-        if name.startswith(scan_name):
-            *_scan_name, pos = name.split("/")
-
-            test_pos_name, position_name = validate_position_name_type2(pos)
-            if test_pos_name:
-                _scan_name = "/".join(_scan_name)
-            else:
-                _scan_name = name
-
-            _scan_name = _scan_name.replace(" ", "_")
-            _scan_name = _scan_name.replace("/", "_")
+        if name == scan_name:
             image_info = ImageInfo(
                 image_id=image_id,
                 image_type=ImageType.from_metadata(meta),
-                scan_name=_scan_name,
+                scan_name=_sanitized_scan_name,
             )
             images.append(image_info)
-            _scan_names.append(_scan_name)
-
-    if len(set(_scan_names)) > 1:
-        msg = (
-            f"Query scan name {scan_name} is ambiguous. "
-            f"Found multiple scan names: {set(_scan_names)} in the Lif file."
-        )
-        raise ValueError(msg)
+            break
+        elif name.startswith(scan_name):
+            pos_suffix = name.removeprefix(scan_name)
+            pos_suffix = pos_suffix.lstrip("/")
+            test_pos1, _ = validate_position_name_type2(pos_suffix)
+            test_pos2, _ = validate_position_name_type1(pos_suffix)
+            test_pos_name = test_pos1 or test_pos2
+            if test_pos_name:
+                image_info = ImageInfo(
+                    image_id=image_id,
+                    image_type=ImageType.from_metadata(meta),
+                    scan_name=_sanitized_scan_name,
+                )
+                images.append(image_info)
+            else:
+                discarder_images.append(name)
+        else:
+            pass
 
     if len(images) == 0:
         msg = (
@@ -57,29 +66,46 @@ def _parse_lif_infos(lif_file: LifFile, scan_name: str) -> list[ImageInfo]:
         )
         raise ValueError(msg)
 
-    return _scan_names[0], images
+    return {_sanitized_scan_name: images}, set(discarder_images)
 
 
-def _parse_lif_multi_infos(lif_file: LifFile, scan_name: str | None = None):
+def _wildcard_parse_lif_infos(
+    lif_file: LifFile,
+) -> tuple[dict[str, list[ImageInfo]], set[str]]:
     """Parse Lif file and return image information."""
+    base_scan_names = set()
+    discarder_images = set()
+    for meta in lif_file.image_list:
+        name = meta["name"]
+        scans = name.split("/")
+        if len(scans) == 0:
+            raise ValueError(f"Invalid scan name: {name}")
+
+        elif len(scans) == 1:
+            base_scan_names.add(scans[0])
+
+        elif len(scans) >= 2:
+            base, *_, pos_suffix = scans
+            test_pos1, _ = validate_position_name_type2(pos_suffix)
+            test_pos2, _ = validate_position_name_type1(pos_suffix)
+            test_pos_name = test_pos1 or test_pos2
+            if test_pos_name:
+                base = "/".join(scans[:-1])
+                base_scan_names.add(base)
+            elif ImageType.from_metadata(meta) == ImageType.MOSAIC:
+                base_scan_names.add(name)
+            else:
+                discarder_images.add(name)
+        else:
+            raise ValueError(f"Invalid scan name: {name}")
+
     images = {}
+    for base_scan_name in base_scan_names:
+        _images, _discarded_images = _simple_parse_lif_infos(lif_file, base_scan_name)
+        images.update(_images)
+        _discarded_images = _discarded_images.union(_discarded_images)
 
-    if scan_name is not None:
-        _scan_name, _images = _parse_lif_infos(lif_file, scan_name)
-        images[_scan_name] = _images
-    else:
-        for meta in lif_file.image_list:
-            name = meta["name"]
-            _scan_name, _images = _parse_lif_infos(lif_file, name)
-            images[_scan_name] = _images
-    if len(images) == 0:
-        msg = (
-            f"Tile Scan {scan_name} not found in the Lif file at path: "
-            f"{lif_file.filename}. \n"
-        )
-        raise ValueError(msg)
-
-    return images
+    return images, discarder_images
 
 
 def group_by_tile_id(
@@ -110,12 +136,19 @@ def parse_lif_metadata(
         )
 
     lif_file = LifFile(lif_path)
-    images = _parse_lif_multi_infos(lif_file, scan_name)
+
+    if scan_name is not None:
+        images, dis_images = _simple_parse_lif_infos(lif_file, scan_name)
+    else:
+        images, dis_images = _wildcard_parse_lif_infos(lif_file)
+
+    if len(dis_images) > 0:
+        logger.warning(f"Discarded images: {dis_images}")
 
     tiled_images = []
-    for scan_name, image_infos in images.items():
+    for name, image_infos in images.items():
         if zarr_name is None:
-            _zarr_name = f"{Path(lif_path).stem}_{scan_name}"
+            _zarr_name = f"{Path(lif_path).stem}_{name}"
             _zarr_name = _zarr_name.replace(" ", "_")
         else:
             _zarr_name = zarr_name

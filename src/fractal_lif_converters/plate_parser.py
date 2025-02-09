@@ -1,5 +1,6 @@
 """Module for parsing LIF files with plate scans."""
 
+import logging
 from pathlib import Path
 
 from fractal_converters_tools.tiled_image import (
@@ -18,6 +19,8 @@ from fractal_lif_converters.tile_builders import (
     collect_plate_acq_mosaic,
     collect_plate_acq_single,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_lif_plate_infos(
@@ -135,7 +138,7 @@ def _parse_lif_plate_infos(
         raise ValueError(msg)
 
     if len(discarded_images) > 0:
-        print(f"Discarded images: {discarded_images}")
+        logger.info(f"Discarded images: {discarded_images} from the Lif file at path: ")
 
     return plates
 
