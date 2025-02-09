@@ -19,31 +19,33 @@ dynamic = ["version"]
 description = "Converter from the Lif files (Leica Microscope) to OME-Zarr format."
 readme = "README.md"
 license = { text = "GPL-3.0" }
-authors = [
-    { name = "Lorenzo Cerrone", email = "lorenzo.cerrone@uzh.ch" },
+authors = [{ name = "Lorenzo Cerrone", email = "lorenzo.cerrone@uzh.ch" }]
+requires-python = ">=3.10,<3.13"
+
+dependencies = [
+    "fractal-tasks-core>=1.4.2,<2",
+    "fractal-converters-tools>=0.4,<0.5",
+    "ngio>=0.1.6,<0.2",
+    "numpy",
+    "pydantic",
+    "readlif",
 ]
 
 # Required Python version and dependencies
-requires-python = ">=3.10"
-dependencies = ["fractal-tasks-core==1.3.3",
-                "ngio==0.1.0beta3",
-                "numpy",
-                "bioio", 
-                "bioio-lif"
-                ]
-
 # Optional dependencies (e.g. for `pip install -e ".[dev]"`, see
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies)
 [project.optional-dependencies]
 dev = [
+    "notebook",
+    "matplotlib",
     "devtools",
     "hatch",
-    "pytest", 
+    "pytest",
     "pytest-cov",
     "requests",
-    "jsonschema", 
-    "ruff", 
-    "pre-commit"
+    "jsonschema",
+    "ruff",
+    "pre-commit",
 ]
 
 # https://docs.astral.sh/ruff
@@ -82,7 +84,7 @@ ignore = [
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 89
-skip-magic-trailing-comma = false  # default is false
+skip-magic-trailing-comma = false # default is false
 
 # https://docs.pytest.org/
 [tool.pytest.ini_options]
@@ -93,7 +95,7 @@ addopts = [
     "--cov",
     "--cov-report=term-missing",
     "--cov-report=xml",
-    ]
+]
 
 # https://coverage.readthedocs.io/
 [tool.coverage.report]
@@ -107,3 +109,22 @@ exclude_lines = [
     "raise NotImplementedError()",
     "pass",
 ]
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+fractal-lif-converters = { path = ".", editable = true }
+# fractal-converters-tools = { path = "../fractal-converters-tools/", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+
+[tool.pixi.feature.dev.tasks]
+manifest = { cmd = "python src/fractal_lif_converters/dev/create_manifest.py" }
+ruff-fix-imports = { cmd = "ruff check --select I --fix", depends-on = [
+    "manifest",
+] }
+ruff = { cmd = "ruff format", depends-on = ["ruff-fix-imports"] }
+test = { cmd = "pytest", depends-on = ["ruff"] }

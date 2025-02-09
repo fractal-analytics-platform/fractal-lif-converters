@@ -20,6 +20,117 @@
         "mem": 12000
       },
       "args_schema_non_parallel": {
+        "$defs": {
+          "AdvancedOptions": {
+            "description": "Advanced options for the conversion.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer",
+                "description": "The number of resolution levels in the pyramid."
+              },
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string",
+                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean",
+                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean",
+                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean",
+                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer",
+                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer",
+                "description": "Z chunk size."
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer",
+                "description": "C chunk size."
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer",
+                "description": "T chunk size."
+              },
+              "position_scale": {
+                "title": "Position Scale",
+                "type": "number",
+                "description": "Scale factor for the position coordinates."
+              }
+            },
+            "title": "AdvancedOptions",
+            "type": "object"
+          },
+          "LifPlateInputModel": {
+            "description": "Acquisition metadata.",
+            "properties": {
+              "path": {
+                "title": "Path",
+                "type": "string",
+                "description": "Path to the lif file."
+              },
+              "tile_scan_name": {
+                "title": "Tile Scan Name",
+                "type": "string",
+                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
+              },
+              "plate_name": {
+                "title": "Plate Name",
+                "type": "string",
+                "description": "Optional name of the plate. If not provided, the plate name will be inferred from the lif file + scan name. If the tile scan name is not provided, this field can not be used."
+              },
+              "acquisition_id": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Acquisition Id",
+                "type": "integer",
+                "description": "Acquisition ID, used to identify multiple rounds of acquisitions for the same plate. If tile_scan_name is not provided, this field can not be used."
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "LifPlateInputModel",
+            "type": "object"
+          }
+        },
         "additionalProperties": false,
         "properties": {
           "zarr_urls": {
@@ -28,99 +139,144 @@
             },
             "title": "Zarr Urls",
             "type": "array",
-            "description": "List of zarr urls."
+            "description": "List of Zarr URLs."
           },
           "zarr_dir": {
             "title": "Zarr Dir",
             "type": "string",
-            "description": "Output path to save the OME-Zarr file."
+            "description": "Directory to store the Zarr files."
           },
-          "lif_files_path": {
-            "title": "Lif Files Path",
-            "type": "string",
-            "description": "Input path to the LIF file, or a folder containing LIF files."
-          },
-          "swap_xy_axes": {
-            "default": false,
-            "title": "Swap Xy Axes",
-            "type": "boolean",
-            "description": "If True, the xy axes will be swapped. Defaults to False."
-          },
-          "num_levels": {
-            "default": 5,
-            "minimum": 0,
-            "title": "Num Levels",
-            "type": "integer",
-            "description": "The number of resolution levels. Defaults to 5."
-          },
-          "coarsening_xy": {
-            "default": 2,
-            "minimum": 1,
-            "title": "Coarsening Xy",
-            "type": "integer",
-            "description": "The scaling factor for the xy axes. Defaults to 2.0."
+          "acquisitions": {
+            "items": {
+              "$ref": "#/$defs/LifPlateInputModel"
+            },
+            "title": "Acquisitions",
+            "type": "array",
+            "description": "List of raw acquisitions to convert to OME-Zarr."
           },
           "overwrite": {
             "default": false,
             "title": "Overwrite",
             "type": "boolean",
-            "description": "If True, the zarr store will be overwritten."
+            "description": "Overwrite existing Zarr files."
+          },
+          "advanced_options": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/AdvancedOptions"
+              }
+            ],
+            "default": {
+              "num_levels": 5,
+              "tiling_mode": "auto",
+              "swap_xy": false,
+              "invert_x": false,
+              "invert_y": false,
+              "max_xy_chunk": 4096,
+              "z_chunk": 10,
+              "c_chunk": 1,
+              "t_chunk": 1,
+              "position_scale": null
+            },
+            "title": "Advanced Options",
+            "description": "Advanced options for the conversion."
           }
         },
         "required": [
           "zarr_urls",
           "zarr_dir",
-          "lif_files_path"
+          "acquisitions"
         ],
         "type": "object",
         "title": "ConvertLifPlateInitTask"
       },
       "args_schema_parallel": {
         "$defs": {
-          "ComputeInputModel": {
-            "description": "Input model for the lif_converter_compute_task.",
+          "AdvancedComputeOptions": {
+            "description": "Advanced options for the conversion.",
             "properties": {
-              "lif_path": {
-                "title": "Lif Path",
-                "type": "string"
-              },
-              "scene_name": {
-                "title": "Scene Name",
-                "type": "string"
-              },
               "num_levels": {
                 "default": 5,
-                "minimum": 0,
+                "minimum": 1,
                 "title": "Num Levels",
                 "type": "integer"
               },
-              "coarsening_xy": {
-                "default": 2,
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string"
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean"
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean"
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean"
+              },
+              "max_xy_chunk": {
+                "default": 4096,
                 "minimum": 1,
-                "title": "Coarsening Xy",
+                "title": "Max Xy Chunk",
                 "type": "integer"
               },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer"
+              }
+            },
+            "title": "AdvancedComputeOptions",
+            "type": "object"
+          },
+          "ConvertParallelInitArgs": {
+            "description": "Arguments for the compute task.",
+            "properties": {
+              "tiled_image_pickled_path": {
+                "title": "Tiled Image Pickled Path",
+                "type": "string"
+              },
               "overwrite": {
-                "default": false,
                 "title": "Overwrite",
                 "type": "boolean"
               },
-              "plate_mode": {
-                "default": true,
-                "title": "Plate Mode",
-                "type": "boolean"
-              },
-              "swap_xy_axes": {
-                "default": false,
-                "title": "Swap Xy Axes",
-                "type": "boolean"
+              "advanced_compute_options": {
+                "$ref": "#/$defs/AdvancedComputeOptions",
+                "title": "Advanced_Compute_Options"
               }
             },
             "required": [
-              "lif_path",
-              "scene_name"
+              "tiled_image_pickled_path",
+              "overwrite",
+              "advanced_compute_options"
             ],
-            "title": "ComputeInputModel",
+            "title": "ConvertParallelInitArgs",
             "type": "object"
           }
         },
@@ -129,12 +285,12 @@
           "zarr_url": {
             "title": "Zarr Url",
             "type": "string",
-            "description": "The path to the zarr store."
+            "description": "URL to the OME-Zarr file."
           },
           "init_args": {
-            "$ref": "#/$defs/ComputeInputModel",
+            "$ref": "#/$defs/ConvertParallelInitArgs",
             "title": "Init Args",
-            "description": "The input parameters for the conversion."
+            "description": "Arguments for the initialization task."
           }
         },
         "required": [
@@ -144,7 +300,7 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_plate_init_task\nInitialize the conversion of LIF files to an OME-Zarr - Plate.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n",
+      "docs_info": "## convert_lif_plate_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     },
     {
@@ -154,7 +310,7 @@
         "Leica",
         "Single Image Converter"
       ],
-      "executable_non_parallel": "convert_lif_scene_init_task.py",
+      "executable_non_parallel": "convert_lif_single_acq_init_task.py",
       "executable_parallel": "convert_lif_compute_task.py",
       "meta_non_parallel": {
         "cpus_per_task": 1,
@@ -165,6 +321,110 @@
         "mem": 12000
       },
       "args_schema_non_parallel": {
+        "$defs": {
+          "AdvancedOptions": {
+            "description": "Advanced options for the conversion.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer",
+                "description": "The number of resolution levels in the pyramid."
+              },
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string",
+                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean",
+                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean",
+                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean",
+                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              },
+              "max_xy_chunk": {
+                "default": 4096,
+                "minimum": 1,
+                "title": "Max Xy Chunk",
+                "type": "integer",
+                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
+              },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer",
+                "description": "Z chunk size."
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer",
+                "description": "C chunk size."
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer",
+                "description": "T chunk size."
+              },
+              "position_scale": {
+                "title": "Position Scale",
+                "type": "number",
+                "description": "Scale factor for the position coordinates."
+              }
+            },
+            "title": "AdvancedOptions",
+            "type": "object"
+          },
+          "LifSingleAcqInputModel": {
+            "description": "Acquisition metadata.",
+            "properties": {
+              "path": {
+                "title": "Path",
+                "type": "string",
+                "description": "Path to the lif file."
+              },
+              "tile_scan_name": {
+                "title": "Tile Scan Name",
+                "type": "string",
+                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
+              },
+              "zarr_name": {
+                "title": "Zarr Name",
+                "type": "string",
+                "description": "Optional name of the Zarr file. If not provided, the name will be generated from the lif file name + tile scan name. If the tile scan name is not provided, theis field can not be used."
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "LifSingleAcqInputModel",
+            "type": "object"
+          }
+        },
         "additionalProperties": false,
         "properties": {
           "zarr_urls": {
@@ -173,104 +433,144 @@
             },
             "title": "Zarr Urls",
             "type": "array",
-            "description": "List of zarr urls."
+            "description": "List of Zarr URLs."
           },
           "zarr_dir": {
             "title": "Zarr Dir",
             "type": "string",
-            "description": "Output path to save the OME-Zarr file."
+            "description": "Directory to store the Zarr files."
           },
-          "lif_files_path": {
-            "title": "Lif Files Path",
-            "type": "string",
-            "description": "Input path to the LIF file, or a folder containing LIF files."
-          },
-          "scene_name": {
-            "title": "Scene Name",
-            "type": "string",
-            "description": "Name of the scene to convert. If None all scenes in the lif file will will converted. If a folder of lif files is provided, the scene_nane will be converted from each file."
-          },
-          "swap_xy_axes": {
-            "default": false,
-            "title": "Swap Xy Axes",
-            "type": "boolean",
-            "description": "If True, the xy axes will be swapped. Defaults to False."
-          },
-          "num_levels": {
-            "default": 5,
-            "minimum": 0,
-            "title": "Num Levels",
-            "type": "integer",
-            "description": "The number of resolution levels. Defaults to 5."
-          },
-          "coarsening_xy": {
-            "default": 2,
-            "minimum": 1,
-            "title": "Coarsening Xy",
-            "type": "integer",
-            "description": "The scaling factor for the xy axes. Defaults to 2.0."
+          "acquisitions": {
+            "items": {
+              "$ref": "#/$defs/LifSingleAcqInputModel"
+            },
+            "title": "Acquisitions",
+            "type": "array",
+            "description": "List of raw acquisitions to convert to OME-Zarr."
           },
           "overwrite": {
             "default": false,
             "title": "Overwrite",
             "type": "boolean",
-            "description": "If True, the zarr store will be overwritten."
+            "description": "Overwrite existing Zarr files."
+          },
+          "advanced_options": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/AdvancedOptions"
+              }
+            ],
+            "default": {
+              "num_levels": 5,
+              "tiling_mode": "auto",
+              "swap_xy": false,
+              "invert_x": false,
+              "invert_y": false,
+              "max_xy_chunk": 4096,
+              "z_chunk": 10,
+              "c_chunk": 1,
+              "t_chunk": 1,
+              "position_scale": null
+            },
+            "title": "Advanced Options",
+            "description": "Advanced options for the conversion."
           }
         },
         "required": [
           "zarr_urls",
           "zarr_dir",
-          "lif_files_path"
+          "acquisitions"
         ],
         "type": "object",
-        "title": "ConvertLifSceneInitTask"
+        "title": "ConvertLifSingleAcqInitTask"
       },
       "args_schema_parallel": {
         "$defs": {
-          "ComputeInputModel": {
-            "description": "Input model for the lif_converter_compute_task.",
+          "AdvancedComputeOptions": {
+            "description": "Advanced options for the conversion.",
             "properties": {
-              "lif_path": {
-                "title": "Lif Path",
-                "type": "string"
-              },
-              "scene_name": {
-                "title": "Scene Name",
-                "type": "string"
-              },
               "num_levels": {
                 "default": 5,
-                "minimum": 0,
+                "minimum": 1,
                 "title": "Num Levels",
                 "type": "integer"
               },
-              "coarsening_xy": {
-                "default": 2,
+              "tiling_mode": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "grid",
+                  "free",
+                  "none"
+                ],
+                "title": "Tiling Mode",
+                "type": "string"
+              },
+              "swap_xy": {
+                "default": false,
+                "title": "Swap Xy",
+                "type": "boolean"
+              },
+              "invert_x": {
+                "default": false,
+                "title": "Invert X",
+                "type": "boolean"
+              },
+              "invert_y": {
+                "default": false,
+                "title": "Invert Y",
+                "type": "boolean"
+              },
+              "max_xy_chunk": {
+                "default": 4096,
                 "minimum": 1,
-                "title": "Coarsening Xy",
+                "title": "Max Xy Chunk",
                 "type": "integer"
               },
+              "z_chunk": {
+                "default": 10,
+                "minimum": 1,
+                "title": "Z Chunk",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "C Chunk",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "minimum": 1,
+                "title": "T Chunk",
+                "type": "integer"
+              }
+            },
+            "title": "AdvancedComputeOptions",
+            "type": "object"
+          },
+          "ConvertParallelInitArgs": {
+            "description": "Arguments for the compute task.",
+            "properties": {
+              "tiled_image_pickled_path": {
+                "title": "Tiled Image Pickled Path",
+                "type": "string"
+              },
               "overwrite": {
-                "default": false,
                 "title": "Overwrite",
                 "type": "boolean"
               },
-              "plate_mode": {
-                "default": true,
-                "title": "Plate Mode",
-                "type": "boolean"
-              },
-              "swap_xy_axes": {
-                "default": false,
-                "title": "Swap Xy Axes",
-                "type": "boolean"
+              "advanced_compute_options": {
+                "$ref": "#/$defs/AdvancedComputeOptions",
+                "title": "Advanced_Compute_Options"
               }
             },
             "required": [
-              "lif_path",
-              "scene_name"
+              "tiled_image_pickled_path",
+              "overwrite",
+              "advanced_compute_options"
             ],
-            "title": "ComputeInputModel",
+            "title": "ConvertParallelInitArgs",
             "type": "object"
           }
         },
@@ -279,12 +579,12 @@
           "zarr_url": {
             "title": "Zarr Url",
             "type": "string",
-            "description": "The path to the zarr store."
+            "description": "URL to the OME-Zarr file."
           },
           "init_args": {
-            "$ref": "#/$defs/ComputeInputModel",
+            "$ref": "#/$defs/ConvertParallelInitArgs",
             "title": "Init Args",
-            "description": "The input parameters for the conversion."
+            "description": "Arguments for the initialization task."
           }
         },
         "required": [
@@ -294,7 +594,7 @@
         "type": "object",
         "title": "ConvertLifComputeTask"
       },
-      "docs_info": "## convert_lif_scene_init_task\nInitialize the conversion of LIF files to OME-Zarr - NgffImages.\n## convert_lif_compute_task\nExport a single scene or plate acquisition from a LIF file to OME-Zarr.\n",
+      "docs_info": "## convert_lif_single_acq_init_task\nInitialize the LIF Plate to OME-Zarr conversion task.\n## convert_lif_compute_task\nInitialize the task to convert a LIF plate to OME-Zarr.\n",
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     }
   ],
