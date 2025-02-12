@@ -8,7 +8,7 @@ from fractal_lif_converters.wrappers import (
 )
 
 try:
-    __version__ = version("fractal_lif-converters")
+    __version__ = version("fractal_lif_converters")
 except PackageNotFoundError:
     __version__ = "uninstalled"
 
