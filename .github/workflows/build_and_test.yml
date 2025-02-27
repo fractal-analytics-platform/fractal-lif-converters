@@ -40,9 +40,11 @@ jobs:
         run: python -m pip install -e .[dev]
 
       - name: Regenerate the manifest
+        if: ${{ matrix.python-version == '3.10' }} && ${{ matrix.os == 'ubuntu-latest' }}
         run: python src/fractal_lif_converters/dev/create_manifest.py
 
       - name: Check if manifest has changed
+        if: ${{ matrix.python-version == '3.10' }} && ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           if [ -n "$(git diff --exit-code ./src/fractal_lif_converters/__FRACTAL_MANIFEST__.json)" ]; then
           echo "__FRACTAL_MANIFEST__.json has changed. Please run 'python src/fractal_lif_converters/dev/create_manifest.py' and commit the changes."
