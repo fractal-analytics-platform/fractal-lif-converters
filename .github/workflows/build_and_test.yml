@@ -13,36 +13,6 @@ on:
 
 
 jobs:
-
-  manifest:
-    name: "Check manifest"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: "pip"
-
-      - name: Install package
-        run: python -m pip install -e .[dev]
-
-      - name: Regenerate the manifest
-        run: python src/fractal_lif_converters/dev/create_manifest.py
-
-      - name: Check if manifest has changed
-        run: |
-          if [ -n "$(git diff --exit-code ./src/fractal_lif_converters/__FRACTAL_MANIFEST__.json)" ]; then
-            echo "__FRACTAL_MANIFEST__.json has changed. Please run 'python src/fractal_lif_converters/dev/create_manifest.py' and commit the changes."
-            exit 1
-          else
-            echo "__FRACTAL_MANIFEST__.json has not changed."
-          fi
-
   tests:
     strategy:
       matrix:
@@ -68,10 +38,10 @@ jobs:
 
       - name: Install package
         run: python -m pip install -e .[dev]
-
+      - name: Check if manifest is up to date
+        run: fractal-manifest check --package fractal_lif_converters
       - name: Test core library with pytest
         run: python -m pytest tests
-
       - name: Coverage
         if: ${{ matrix.python-version == '3.10' }} && ${{ matrix.os == 'ubuntu-latest' }}
         uses: codecov/codecov-action@v4
