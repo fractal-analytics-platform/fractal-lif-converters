@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from fractal_converters_tools.task_init_tools import build_parallelization_list
 from pydantic import BaseModel, model_validator, validate_call
@@ -30,8 +29,8 @@ class LifSingleAcqInputModel(BaseModel):
     """
 
     path: str
-    tile_scan_name: Optional[str] = None
-    zarr_name: Optional[str] = None
+    tile_scan_name: str | None = None
+    zarr_name: str | None = None
 
     @model_validator(mode="after")
     def check_plate_name(self):
@@ -51,7 +50,6 @@ class LifSingleAcqInputModel(BaseModel):
 def convert_lif_single_acq_init_task(
     *,
     # Fractal parameters
-    zarr_urls: list[str],
     zarr_dir: str,
     # Task parameters
     acquisitions: list[LifSingleAcqInputModel],
@@ -71,11 +69,11 @@ def convert_lif_single_acq_init_task(
     if not acquisitions:
         raise ValueError("No acquisitions provided.")
 
-    zarr_dir = Path(zarr_dir)
+    zarr_dir_path = Path(zarr_dir)
 
-    if not zarr_dir.exists():
-        logger.info(f"Creating directory: {zarr_dir}")
-        zarr_dir.mkdir(parents=True)
+    if not zarr_dir_path.exists():
+        logger.info(f"Creating directory: {zarr_dir_path}")
+        zarr_dir_path.mkdir(parents=True)
 
     # prepare the parallel list of zarr urls
     tiled_images = []
@@ -99,7 +97,7 @@ def convert_lif_single_acq_init_task(
 
     # Common fractal-converters-tools functions
     parallelization_list = build_parallelization_list(
-        zarr_dir=zarr_dir,
+        zarr_dir=zarr_dir_path,
         tiled_images=tiled_images,
         overwrite=overwrite,
         advanced_compute_options=advanced_options,
@@ -110,7 +108,7 @@ def convert_lif_single_acq_init_task(
 
 
 if __name__ == "__main__":
-    from fractal_tasks_core.tasks._utils import run_fractal_task
+    from fractal_task_tools.task_wrapper import run_fractal_task
 
     run_fractal_task(
         task_function=convert_lif_single_acq_init_task, logger_name=logger.name

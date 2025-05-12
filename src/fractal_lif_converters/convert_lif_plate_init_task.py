@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Literal, Optional
 
 from fractal_converters_tools.omezarr_plate_writers import initiate_ome_zarr_plates
 from fractal_converters_tools.task_common_models import (
@@ -34,8 +33,8 @@ class LifPlateInputModel(BaseModel):
     """
 
     path: str
-    tile_scan_name: Optional[str] = None
-    plate_name: Optional[str] = None
+    tile_scan_name: str | None = None
+    plate_name: str | None = None
     acquisition_id: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
@@ -82,14 +81,13 @@ class AdvancedOptions(AdvancedComputeOptions):
         position_scale (Optional[float]): Scale factor for the position coordinates.
     """
 
-    position_scale: Optional[float] = None
+    position_scale: float | None = None
 
 
 @validate_call
 def convert_lif_plate_init_task(
     *,
     # Fractal parameters
-    zarr_urls: list[str],
     zarr_dir: str,
     # Task parameters
     acquisitions: list[LifPlateInputModel],
@@ -109,11 +107,11 @@ def convert_lif_plate_init_task(
     if not acquisitions:
         raise ValueError("No acquisitions provided.")
 
-    zarr_dir = Path(zarr_dir)
+    zarr_dir_path = Path(zarr_dir)
 
-    if not zarr_dir.exists():
-        logger.info(f"Creating directory: {zarr_dir}")
-        zarr_dir.mkdir(parents=True)
+    if not zarr_dir_path.exists():
+        logger.info(f"Creating directory: {zarr_dir_path}")
+        zarr_dir_path.mkdir(parents=True)
 
     # prepare the parallel list of zarr urls
     tiled_images = []
@@ -138,7 +136,7 @@ def convert_lif_plate_init_task(
 
     # Common fractal-converters-tools functions
     parallelization_list = build_parallelization_list(
-        zarr_dir=zarr_dir,
+        zarr_dir=zarr_dir_path,
         tiled_images=tiled_images,
         overwrite=overwrite,
         advanced_compute_options=advanced_options,
@@ -146,15 +144,15 @@ def convert_lif_plate_init_task(
     logger.info(f"Total {len(parallelization_list)} images to convert.")
 
     initiate_ome_zarr_plates(
-        zarr_dir=zarr_dir,
+        zarr_dir=zarr_dir_path,
         tiled_images=tiled_images,
         overwrite=overwrite,
     )
-    logger.info(f"Initialized OME-Zarr Plate at: {zarr_dir}")
+    logger.info(f"Initialized OME-Zarr Plate at: {zarr_dir_path}")
     return {"parallelization_list": parallelization_list}
 
 
 if __name__ == "__main__":
-    from fractal_tasks_core.tasks._utils import run_fractal_task
+    from fractal_task_tools.task_wrapper import run_fractal_task
 
     run_fractal_task(task_function=convert_lif_plate_init_task, logger_name=logger.name)

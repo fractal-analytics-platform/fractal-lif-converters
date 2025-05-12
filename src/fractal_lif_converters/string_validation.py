@@ -28,7 +28,8 @@ def validate_well_name_type2(row_name: str, column_name: str) -> tuple[bool, str
     """Validate well name for type 2 plate layout.
 
     Well can be hierarchically structured, for example `A/1`, `A/2`, `B/1`, `AA/1`, etc.
-    Where the row must be a single or double letter and the column must be a positive integer.
+    Where the row must be a single or double letter and the column must be a positive
+    integer.
     """
     if len(row_name) < 1 or len(row_name) > 2:
         return False, "", ""

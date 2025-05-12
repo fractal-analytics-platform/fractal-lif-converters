@@ -76,7 +76,7 @@ def _parse_lif_plate_infos(
         elif len(other) == 2:
             # - "A1/R1"
             well_name, position_name = other
-            test_well_name, row, col = validate_well_name_type2(well_name)
+            test_well_name, row, col = validate_well_name_type1(well_name)
             test_pos_name, position_name = validate_position_name_type1(position_name)
             if test_well_name and test_pos_name:
                 image_in_plate_info = ImageInPlateInfo(
