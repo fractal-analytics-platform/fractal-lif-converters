@@ -1,6 +1,7 @@
 """Utility for running the init and compute tasks with a single function call."""
 
 from pathlib import Path
+from typing import Literal
 
 from fractal_lif_converters.convert_lif_compute_task import (
     convert_lif_compute_task,
@@ -21,7 +22,7 @@ def convert_lif_plate_to_omezarr(
     acquisitions: list[LifPlateInputModel] | str | Path,
     overwrite: bool = False,
     num_levels: int = 5,
-    tiling_mode: str = "auto",
+    tiling_mode: Literal["auto", "grid", "free", "none"] = "auto",
     swap_xy: bool = False,
     invert_x: bool = False,
     invert_y: bool = False,
@@ -60,9 +61,8 @@ def convert_lif_plate_to_omezarr(
 
     """
     if isinstance(acquisitions, str | Path):
-        acquisitions = [LifPlateInputModel(path=acquisitions)]
+        acquisitions = [LifPlateInputModel(path=str(acquisitions))]
     parallelization_list = convert_lif_plate_init_task(
-        zarr_urls=[],
         zarr_dir=str(zarr_dir),
         acquisitions=acquisitions,
         overwrite=overwrite,
@@ -82,6 +82,7 @@ def convert_lif_plate_to_omezarr(
 
     list_of_images = []
     for task_args in parallelization_list["parallelization_list"]:
+        print(f"Converting {task_args['zarr_url']}")
         list_updates = convert_lif_compute_task(
             zarr_url=task_args["zarr_url"], init_args=task_args["init_args"]
         )
@@ -93,7 +94,7 @@ def convert_lif_single_acq_to_omezarr(
     acquisitions: list[LifSingleAcqInputModel] | str | Path,
     overwrite: bool = False,
     num_levels: int = 5,
-    tiling_mode: str = "auto",
+    tiling_mode: Literal["auto", "grid", "free", "none"] = "auto",
     swap_xy: bool = False,
     invert_x: bool = False,
     invert_y: bool = False,
@@ -132,9 +133,8 @@ def convert_lif_single_acq_to_omezarr(
 
     """
     if isinstance(acquisitions, str | Path):
-        acquisitions = [LifSingleAcqInputModel(path=acquisitions)]
+        acquisitions = [LifSingleAcqInputModel(path=str(acquisitions))]
     parallelization_list = convert_lif_single_acq_init_task(
-        zarr_urls=[],
         zarr_dir=str(zarr_dir),
         acquisitions=acquisitions,
         overwrite=overwrite,

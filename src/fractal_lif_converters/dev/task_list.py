@@ -1,9 +1,23 @@
 """Contains the list of tasks available to fractal."""
 
-from fractal_tasks_core.dev.task_models import CompoundTask
+from fractal_task_tools.task_models import ConverterCompoundTask
+
+AUTHORS = "Fractal Core Team"
+DOCS_LINK = "https://github.com/fractal-analytics-platform/fractal-lif-converters"
+
+INPUT_MODELS = [
+    ("fractal_lif_converters", "convert_lif_plate_init_task.py", "LifPlateInputModel"),
+    (
+        "fractal_lif_converters",
+        "convert_lif_single_acq_init_task.py",
+        "LifSingleAcqInputModel",
+    ),
+    ("fractal_lif_converters", "convert_lif_plate_init_task.py", "AdvancedOptions"),
+]
+
 
 TASK_LIST = [
-    CompoundTask(
+    ConverterCompoundTask(
         name="Convert Lif Plate to OME-Zarr",
         executable_init="convert_lif_plate_init_task.py",
         executable="convert_lif_compute_task.py",
@@ -17,7 +31,7 @@ TASK_LIST = [
         ],
         docs_info="file:docs_info/lif_plate_task.md",
     ),
-    CompoundTask(
+    ConverterCompoundTask(
         name="Convert Lif Scene to OME-Zarr",
         executable_init="convert_lif_single_acq_init_task.py",
         executable="convert_lif_compute_task.py",

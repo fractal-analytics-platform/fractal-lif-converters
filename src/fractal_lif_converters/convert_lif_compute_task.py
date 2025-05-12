@@ -31,11 +31,10 @@ def convert_lif_compute_task(
     zarr_output = img_list_update["image_list_updates"][0]["zarr_url"]
     run_time = time.time() - timer
     logger.info(f"Succesfully converted: {zarr_output}, in {run_time:.2f}[s]")
-    logger.info(f"convert_lif_scene took {time.time() - timer} seconds")
     return img_list_update
 
 
 if __name__ == "__main__":
-    from fractal_tasks_core.tasks._utils import run_fractal_task
+    from fractal_task_tools.task_wrapper import run_fractal_task
 
     run_fractal_task(task_function=convert_lif_compute_task, logger_name=logger.name)

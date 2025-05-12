@@ -20,12 +20,12 @@ description = "Converter from the Lif files (Leica Microscope) to OME-Zarr forma
 readme = "README.md"
 license = { text = "GPL-3.0" }
 authors = [{ name = "Lorenzo Cerrone", email = "lorenzo.cerrone@uzh.ch" }]
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 
 dependencies = [
-    "fractal-tasks-core>=1.4.2,<2",
-    "fractal-converters-tools>=0.4,<0.5",
-    "ngio>=0.1.6,<0.2",
+    "fractal-converters-tools >= 0.5.0,<0.6.0",
+    "fractal-task-tools==0.0.12",
+    "ngio >= 0.2.8",
     "numpy",
     "pydantic",
     "readlif",
@@ -51,7 +51,7 @@ dev = [
 # https://docs.astral.sh/ruff
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 src = ["src"]
 
 # https://docs.astral.sh/ruff/rules
@@ -122,9 +122,7 @@ default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
 
 [tool.pixi.feature.dev.tasks]
-manifest = { cmd = "python src/fractal_lif_converters/dev/create_manifest.py" }
-ruff-fix-imports = { cmd = "ruff check --select I --fix", depends-on = [
-    "manifest",
-] }
+#manifest = { cmd = "python src/fractal_lif_converters/dev/create_manifest.py" }
+ruff-fix-imports = { cmd = "ruff check --select I --fix" }
 ruff = { cmd = "ruff format", depends-on = ["ruff-fix-imports"] }
 test = { cmd = "pytest", depends-on = ["ruff"] }
