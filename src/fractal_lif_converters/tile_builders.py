@@ -113,6 +113,18 @@ class LifTileLoader:
         return tile_data
 
 
+def _resolve_position_scale(lif_image, scale_m: float | None) -> float:
+    """Resolve the physical position scale used for coordinate conversion."""
+    if scale_m is None:
+        scale_m = lif_image.scale_n.get(10)
+    if scale_m is None:
+        scale_m = 1e-6
+    scale_m = float(scale_m)
+    if scale_m == 0:
+        raise ValueError("Position scale must be non-zero.")
+    return scale_m
+
+
 def build_tiles_mosaic(
     lif_image, image_id, scale_m: float | None = None
 ) -> Generator[Tile, Any, None]:
@@ -130,8 +142,7 @@ def build_tiles_mosaic(
     scale_z = 1 / lif_image.scale_n.get(3, 1)
     scale_t = 1  # lif_image.scale_n.get(4, 1)
 
-    if scale_m is None:
-        scale_m = lif_image.scale_n.get(10, 1e-6)
+    scale_m = _resolve_position_scale(lif_image, scale_m)
 
     # [um]
     length_x = shape_x * scale_x
@@ -272,8 +283,7 @@ def build_single_tile(lif_image, image_id, scale_m: float | None = None) -> Tile
     scale_z = 1 / lif_image.scale_n.get(3, 1)
     scale_t = 1  # lif_image.scale_n.get(4, 1)
 
-    if scale_m is None:
-        scale_m = float(lif_image.scale_n.get(10, 1e-6))
+    scale_m = _resolve_position_scale(lif_image, scale_m)
 
     length_x = shape_x * scale_x
     length_y = shape_y * scale_y
