@@ -1,0 +1,171 @@
+images:
+  Project_3D_TileScan_3_B_2.zarr:
+    axes:
+    - c
+    - z
+    - y
+    - x
+    shape:
+    - 3
+    - 5
+    - 512
+    - 512
+    pixelsize:
+    - 1.0
+    - 3.3350025000000003
+    - 2.2794117647058822
+    - 2.2794117647058822
+    channel_labels:
+    - channel_0
+    - channel_1
+    - channel_2
+    wavelength_ids:
+    - channel_0
+    - channel_1
+    - channel_2
+    types:
+      is_3D: true
+    attributes: {}
+    tables:
+      FOV_ROI_table:
+        rois:
+          FOV_0:
+            slice_repr: '[x: 0.0->256.0, y: 0.0->256.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 2.200464884440104
+              std: 8.435307174757494
+              min: 0.0
+              max: 255.0
+              hash: 9ceb61a8ba301b4f614014378802bd2835c06c13330b80e909c53a870e01d41e
+            yx_origin:
+            - 18324.7779
+            - 22553.1497
+          FOV_1:
+            slice_repr: '[x: 256.0->512.0, y: 0.0->256.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 2.200464884440104
+              std: 8.435307174757494
+              min: 0.0
+              max: 255.0
+              hash: 9ceb61a8ba301b4f614014378802bd2835c06c13330b80e909c53a870e01d41e
+            yx_origin:
+            - 18324.7779
+            - 23076.2747
+          FOV_2:
+            slice_repr: '[x: 256.0->512.0, y: 256.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 2.200464884440104
+              std: 8.435307174757494
+              min: 0.0
+              max: 255.0
+              hash: 9ceb61a8ba301b4f614014378802bd2835c06c13330b80e909c53a870e01d41e
+            yx_origin:
+            - 18847.902900000005
+            - 23076.2747
+          FOV_3:
+            slice_repr: '[x: 0.0->256.0, y: 256.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 2.200464884440104
+              std: 8.435307174757494
+              min: 0.0
+              max: 255.0
+              hash: 9ceb61a8ba301b4f614014378802bd2835c06c13330b80e909c53a870e01d41e
+            yx_origin:
+            - 18847.902900000005
+            - 22553.1497
+      well_ROI_table:
+        rois:
+          image:
+            slice_repr: '[x: 0.0->512.0, y: 0.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 2.200464884440104
+              std: 8.435307174757495
+              min: 0.0
+              max: 255.0
+              hash: c6516fc219a62d80efd958aa1f69eb8e00f625784044e6f1f11aa7eb83922a29
+            yx_origin: null
+  Project_3D_TileScan_3_C_3.zarr:
+    axes:
+    - c
+    - z
+    - y
+    - x
+    shape:
+    - 3
+    - 5
+    - 512
+    - 512
+    pixelsize:
+    - 1.0
+    - 3.3350025000000003
+    - 2.2794117647058822
+    - 2.2794117647058822
+    channel_labels:
+    - channel_0
+    - channel_1
+    - channel_2
+    wavelength_ids:
+    - channel_0
+    - channel_1
+    - channel_2
+    types:
+      is_3D: true
+    attributes: {}
+    tables:
+      FOV_ROI_table:
+        rois:
+          FOV_0:
+            slice_repr: '[x: 0.0->256.0, y: 0.0->256.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 1.8603464762369792
+              std: 7.192684149003347
+              min: 0.0
+              max: 245.0
+              hash: 61f301f04786963dcb661cc306607076328671daf66c3605725d185490cce57a
+            yx_origin:
+            - 27374.7781
+            - 31603.149900000008
+          FOV_1:
+            slice_repr: '[x: 256.0->512.0, y: 0.0->256.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 1.8603464762369792
+              std: 7.192684149003347
+              min: 0.0
+              max: 245.0
+              hash: 61f301f04786963dcb661cc306607076328671daf66c3605725d185490cce57a
+            yx_origin:
+            - 27374.7781
+            - 32126.274900000008
+          FOV_2:
+            slice_repr: '[x: 256.0->512.0, y: 256.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 1.8603464762369792
+              std: 7.192684149003347
+              min: 0.0
+              max: 245.0
+              hash: 61f301f04786963dcb661cc306607076328671daf66c3605725d185490cce57a
+            yx_origin:
+            - 27897.9031
+            - 32126.274900000008
+          FOV_3:
+            slice_repr: '[x: 0.0->256.0, y: 256.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 1.8603464762369792
+              std: 7.192684149003347
+              min: 0.0
+              max: 245.0
+              hash: 61f301f04786963dcb661cc306607076328671daf66c3605725d185490cce57a
+            yx_origin:
+            - 27897.9031
+            - 31603.149900000008
+      well_ROI_table:
+        rois:
+          image:
+            slice_repr: '[x: 0.0->512.0, y: 0.0->512.0, z: 0.0->5.0]'
+            finger_print:
+              mean: 1.8603464762369792
+              std: 7.192684149003347
+              min: 0.0
+              max: 245.0
+              hash: e02faeef7f48c0732af38f368ebfa28ca023aa19586345469a7711ce03e6a1b9
+            yx_origin: null

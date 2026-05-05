@@ -11,8 +11,8 @@
       ],
       "docs_info": "### Purpose\n\n- Convert a Leica LIF plate to a OME-Zarr Plate.\n\n### Outputs\n\n- A OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Leica LIF acquisitions.\n- This converter is does not support images exported in auto-saved mode.\n\n### Expected inputs\n\nThe following plate layout are supported:\n\n* Single Position Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1 (Simple Image)\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1 (Simple Image)\n    --------/...\n    ```\n\n* Multi Position Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1\n    ----------------/R1 (Simple Image)\n    ----------------/R2 (Simple Image)\n    ----------------/...\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1\n    ------------/R1 (Simple Image)\n    ------------/R2 (Simple Image)\n    ------------/...\n    ```\n\n* Mosaique Plates\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A\n    ------------/1 (Mosaic Image)\n    ------------/...\n    ```\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/A1 (Mosaic Image)\n    --------/...\n    ```\n\nThe names in curly braces `{}` can be freely chosen by the user. \n\nWhile the othe names must follow the following format:\n\n* The well name must be a singe or duble letter followed by a positive integer.\nValid examples are `A1`, `A2`, `B1`, `AA1`, `AA12` etc.\n* Alternatively, the well can be hierarchically structured, for example `A/1`, `A/2`, `B/1`, `AA/1`, `AA/12` etc.\n* If the well is a multi-position well, the positions must be named `R` followed by a positive integer. Valid examples are `R1`, `R2`, `R3`, `R12` etc.\n* In case of more complex plate formats, for example FLIM  data, the converter will ignore the data that does not follow the above formats. For example:\n\n  ```text\n  /{Project.lif}\n  ----/{Tilescan 1}/\n  --------/A/1/R1 (Converted)\n  --------/A/1/R1/FLIM/Intensity (Ignored)\n  --------------------/Fast Flim (Ignored)\n  --------------------/Standard Deviation (Ignored)\n  ```\n\n",
       "type": "converter_compound",
-      "executable_non_parallel": "convert_lif_plate_init_task.py",
-      "executable_parallel": "convert_lif_compute_task.py",
+      "executable_non_parallel": "lif/plate/convert_lif_plate_init_task.py",
+      "executable_parallel": "common/image_in_plate_compute_task.py",
       "meta_non_parallel": {
         "cpus_per_task": 1,
         "mem": 4000
@@ -23,114 +23,707 @@
       },
       "args_schema_non_parallel": {
         "$defs": {
-          "AdvancedOptions": {
-            "description": "Advanced options for the conversion.",
+          "BackendType": {
+            "enum": [
+              "anndata",
+              "json",
+              "csv",
+              "parquet"
+            ],
+            "title": "BackendType",
+            "type": "string",
+            "description": "Missing description for BackendType."
+          },
+          "ChannelInfo": {
+            "description": "Channel information.",
             "properties": {
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer",
-                "description": "The number of resolution levels in the pyramid."
+              "channel_label": {
+                "description": "Label of the channel.",
+                "title": "Channel Label",
+                "type": "string"
+              },
+              "wavelength_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
+                "title": "Wavelength Id"
+              },
+              "colors": {
+                "$ref": "#/$defs/DefaultColors",
+                "default": "Blue (0000FF)",
+                "description": "The color associated with the channel, e.g. for visualization purposes.",
+                "title": "Colors"
+              }
+            },
+            "required": [
+              "channel_label"
+            ],
+            "title": "ChannelInfo",
+            "type": "object"
+          },
+          "ConverterOptions": {
+            "additionalProperties": false,
+            "description": "Options for the OME-Zarr conversion process.",
+            "properties": {
+              "writer_mode": {
+                "$ref": "#/$defs/WriterMode",
+                "default": "By FOV",
+                "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
+                "title": "Writer Mode"
               },
               "tiling_mode": {
-                "default": "auto",
-                "enum": [
-                  "auto",
-                  "grid",
-                  "free",
-                  "none"
-                ],
-                "title": "Tiling Mode",
-                "type": "string",
-                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
+                "$ref": "#/$defs/TilingMode",
+                "default": "Auto",
+                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "title": "Tiling Mode"
               },
-              "swap_xy": {
-                "default": false,
-                "title": "Swap Xy",
-                "type": "boolean",
-                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "tiling_tolerance": {
+                "default": 0,
+                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
               },
-              "invert_x": {
-                "default": false,
-                "title": "Invert X",
-                "type": "boolean",
-                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "alignment_correction": {
+                "$ref": "#/$defs/StagePositionCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
+                "description": "Alignment correction options.",
+                "title": "Alignment Corrections"
               },
-              "invert_y": {
-                "default": false,
-                "title": "Invert Y",
-                "type": "boolean",
-                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "omezarr_options": {
+                "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
+                "title": "OME-Zarr Options"
               },
-              "max_xy_chunk": {
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
+              }
+            },
+            "title": "ConverterOptions",
+            "type": "object"
+          },
+          "DataTypeEnum": {
+            "description": "Data type enumeration.",
+            "enum": [
+              "autodetect",
+              "uint8",
+              "uint16",
+              "uint32"
+            ],
+            "title": "DataTypeEnum",
+            "type": "string"
+          },
+          "DefaultColors": {
+            "description": "Default colors for the channels.",
+            "enum": [
+              "Blue (0000FF)",
+              "Red (FF0000)",
+              "Yellow (FFFF00)",
+              "Magenta (FF00FF)",
+              "Cyan (00FFFF)",
+              "Gray (808080)",
+              "Green (00FF00)",
+              "Orange (FF8000)",
+              "Purple (8000FF)",
+              "Teal (008080)",
+              "Lime (00FF80)",
+              "Amber (FFBF00)",
+              "Pink (FF0080)",
+              "Navy (000080)",
+              "Maroon (800000)",
+              "Olive (808000)",
+              "Coral (FF7F50)",
+              "Violet (8000FF)"
+            ],
+            "title": "DefaultColors",
+            "type": "string"
+          },
+          "FixedSizeChunking": {
+            "description": "Chunking strategy with fixed chunk sizes.",
+            "properties": {
+              "mode": {
+                "const": "Fixed Size",
+                "default": "Fixed Size",
+                "description": "Fixed size chunking.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_chunk": {
                 "default": 4096,
+                "description": "Chunk size for XY dimensions.",
                 "minimum": 1,
-                "title": "Max Xy Chunk",
-                "type": "integer",
-                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
+                "title": "Chunk Size for XY",
+                "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
+                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
-                "title": "Z Chunk",
-                "type": "integer",
-                "description": "Z chunk size."
+                "title": "Chunk Size for Z",
+                "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
+                "description": "Chunk size for C dimension.",
                 "minimum": 1,
-                "title": "C Chunk",
-                "type": "integer",
-                "description": "C chunk size."
+                "title": "Chunk Size for C",
+                "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
+                "description": "Chunk size for T dimension.",
                 "minimum": 1,
-                "title": "T Chunk",
-                "type": "integer",
-                "description": "T chunk size."
-              },
-              "position_scale": {
-                "title": "Position Scale",
-                "type": "number",
-                "description": "Scale factor for the position coordinates."
+                "title": "Chunk Size for T",
+                "type": "integer"
               }
             },
-            "title": "AdvancedOptions",
+            "title": "FixedSizeChunking",
             "type": "object"
           },
-          "LifPlateInputModel": {
-            "description": "Acquisition metadata.",
+          "FovBasedChunking": {
+            "description": "Chunking strategy that matches the field of view.",
+            "properties": {
+              "mode": {
+                "const": "Same as FOV",
+                "default": "Same as FOV",
+                "description": "Chunking based on FOV size.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_scaling": {
+                "$ref": "#/$defs/Scalings",
+                "default": "1",
+                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches FOV size.\nIf set to 0.5, chunk size is half the FOV size (smaller chunks, more files).\nIf set to 2, chunk size is double the FOV size (larger chunks, less files).",
+                "title": "XY Scaling Factor"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FovBasedChunking",
+            "type": "object"
+          },
+          "LifAcquisitionOptions": {
+            "description": "Acquisition options specific to LIF conversion.",
+            "properties": {
+              "channels": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/ChannelInfo"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "List of channel information.",
+                "title": "Channels"
+              },
+              "pixel_info": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/PixelSizeModel"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Pixel size information.",
+                "title": "Pixel Size Information"
+              },
+              "condition_table_path": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional path to a condition table CSV file.",
+                "title": "Condition Table Path"
+              },
+              "axes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Axes to use for the image data, e.g. \"czyx\".",
+                "title": "Axes"
+              },
+              "data_type": {
+                "$ref": "#/$defs/DataTypeEnum",
+                "default": "autodetect",
+                "description": "Data type of the image data.",
+                "title": "Data Type"
+              },
+              "stage_corrections": {
+                "$ref": "#/$defs/StageOrientation",
+                "default": {
+                  "flip_x": false,
+                  "flip_y": false,
+                  "swap_xy": false
+                },
+                "title": "Stage Corrections"
+              },
+              "filters": {
+                "default": [],
+                "description": "List of filters to apply.",
+                "items": {
+                  "discriminator": {
+                    "mapping": {
+                      "Path Regex Exclude Filter": "#/$defs/RegexExcludeFilter",
+                      "Path Regex Include Filter": "#/$defs/RegexIncludeFilter",
+                      "Well Exclude Filter": "#/$defs/WellExcludeFilter",
+                      "Well Include Filter": "#/$defs/WellIncludeFilter"
+                    },
+                    "propertyName": "name"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/RegexExcludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/RegexIncludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/WellExcludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/WellIncludeFilter"
+                    }
+                  ]
+                },
+                "title": "Filters",
+                "type": "array"
+              },
+              "position_scale": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Scale factor (m/px) overriding ``lif_image.scale_n[10]``. Set when stage\ncoordinates need a non-default unit conversion.",
+                "title": "Position Scale"
+              }
+            },
+            "title": "LifAcquisitionOptions",
+            "type": "object"
+          },
+          "LifPlateAcquisitionModel": {
+            "description": "Acquisition input model for LIF plate conversion.",
             "properties": {
               "path": {
+                "description": "Path to the acquisition LIF file or directory containing the LIF file(s).",
                 "title": "Path",
-                "type": "string",
-                "description": "Path to the lif file."
-              },
-              "tile_scan_name": {
-                "title": "Tile Scan Name",
-                "type": "string",
-                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
+                "type": "string"
               },
               "plate_name": {
-                "title": "Plate Name",
-                "type": "string",
-                "description": "Optional name of the plate. If not provided, the plate name will be inferred from the lif file + scan name. If the tile scan name is not provided, this field can not be used."
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional custom name for the plate. If not provided, the name will be the\nacquisition directory name.",
+                "title": "Plate Name"
               },
               "acquisition_id": {
                 "default": 0,
+                "description": "Acquisition ID, used to identify the acquisition in case of multiple acquisitions.",
                 "minimum": 0,
                 "title": "Acquisition Id",
-                "type": "integer",
-                "description": "Acquisition ID, used to identify multiple rounds of acquisitions for the same plate. If tile_scan_name is not provided, this field can not be used."
+                "type": "integer"
+              },
+              "advanced": {
+                "$ref": "#/$defs/LifAcquisitionOptions",
+                "default": {
+                  "channels": null,
+                  "pixel_info": null,
+                  "condition_table_path": null,
+                  "axes": null,
+                  "data_type": "autodetect",
+                  "stage_corrections": {
+                    "flip_x": false,
+                    "flip_y": false,
+                    "swap_xy": false
+                  },
+                  "filters": [],
+                  "position_scale": null
+                },
+                "description": "Advanced acquisition options (LIF-specific).",
+                "title": "Advanced"
+              },
+              "tile_scan_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional name of the tile scan. If ``None``, all plate-shaped tile scans\nin the LIF file are processed (wildcard mode).",
+                "title": "Tile Scan Name"
               }
             },
             "required": [
               "path"
             ],
-            "title": "LifPlateInputModel",
+            "title": "LifPlateAcquisitionModel",
             "type": "object"
+          },
+          "OmeZarrOptions": {
+            "additionalProperties": false,
+            "description": "Options specific to OME-Zarr writing.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "description": "Number of resolution levels to create.",
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
+                "description": "Chunking strategy to use.",
+                "discriminator": {
+                  "mapping": {
+                    "Fixed Size": "#/$defs/FixedSizeChunking",
+                    "Same as FOV": "#/$defs/FovBasedChunking"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/FovBasedChunking"
+                  },
+                  {
+                    "$ref": "#/$defs/FixedSizeChunking"
+                  }
+                ],
+                "title": "Chunking Strategy"
+              },
+              "ngff_version": {
+                "default": "0.4",
+                "description": "Version of the OME-NGFF specification to target.",
+                "enum": [
+                  "0.4",
+                  "0.5"
+                ],
+                "title": "Ngff Version",
+                "type": "string"
+              },
+              "table_backend": {
+                "$ref": "#/$defs/BackendType",
+                "default": "anndata",
+                "description": "Backend type for storing tables.",
+                "title": "Table Backend"
+              }
+            },
+            "title": "OmeZarrOptions",
+            "type": "object"
+          },
+          "OverwriteMode": {
+            "enum": [
+              "No Overwrite",
+              "Overwrite",
+              "Extend"
+            ],
+            "title": "OverwriteMode",
+            "type": "string",
+            "description": "Missing description for OverwriteMode."
+          },
+          "PixelSizeModel": {
+            "description": "Pixel size model.",
+            "properties": {
+              "pixelsize": {
+                "description": "Pixel size in micrometers.",
+                "title": "Pixelsize",
+                "type": "number"
+              },
+              "z_spacing": {
+                "description": "Z spacing in micrometers.",
+                "title": "Z Spacing",
+                "type": "number"
+              },
+              "t_spacing": {
+                "description": "Time spacing in seconds.",
+                "title": "T Spacing",
+                "type": "number"
+              }
+            },
+            "required": [
+              "pixelsize",
+              "z_spacing",
+              "t_spacing"
+            ],
+            "title": "PixelSizeModel",
+            "type": "object"
+          },
+          "RegexExcludeFilter": {
+            "description": "Regex exclude filter model.",
+            "properties": {
+              "name": {
+                "const": "Path Regex Exclude Filter",
+                "default": "Path Regex Exclude Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex pattern to exclude. If the tile's base path matches this regex,\nit will be excluded, otherwise it will be included.",
+                "title": "Regex",
+                "type": "string"
+              }
+            },
+            "required": [
+              "regex"
+            ],
+            "title": "RegexExcludeFilter",
+            "type": "object"
+          },
+          "RegexIncludeFilter": {
+            "description": "Regex include filter model.",
+            "properties": {
+              "name": {
+                "const": "Path Regex Include Filter",
+                "default": "Path Regex Include Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex pattern to include. If the tile's base path matches this regex,\nit will be included, otherwise it will be excluded.",
+                "title": "Regex",
+                "type": "string"
+              }
+            },
+            "required": [
+              "regex"
+            ],
+            "title": "RegexIncludeFilter",
+            "type": "object"
+          },
+          "Scalings": {
+            "enum": [
+              "0.25",
+              "0.5",
+              "1",
+              "2",
+              "4"
+            ],
+            "title": "Scalings",
+            "type": "string",
+            "description": "Missing description for Scalings."
+          },
+          "StageOrientation": {
+            "additionalProperties": false,
+            "description": "Stage orientation corrections.",
+            "properties": {
+              "flip_x": {
+                "default": false,
+                "description": "Whether to flip the position along the X axis.",
+                "title": "Flip X",
+                "type": "boolean"
+              },
+              "flip_y": {
+                "default": false,
+                "description": "Whether to flip the position along the Y axis.",
+                "title": "Flip Y",
+                "type": "boolean"
+              },
+              "swap_xy": {
+                "default": false,
+                "description": "Whether to swap the positions along the X and Y axes.",
+                "title": "Swap XY",
+                "type": "boolean"
+              }
+            },
+            "title": "StageOrientation",
+            "type": "object"
+          },
+          "StagePositionCorrections": {
+            "additionalProperties": false,
+            "description": "Alignment correction for stage positions.",
+            "properties": {
+              "align_xy": {
+                "default": false,
+                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align XY",
+                "type": "boolean"
+              },
+              "align_z": {
+                "default": false,
+                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align Z",
+                "type": "boolean"
+              },
+              "align_t": {
+                "default": false,
+                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align T",
+                "type": "boolean"
+              }
+            },
+            "title": "StagePositionCorrections",
+            "type": "object"
+          },
+          "TempJsonOptions": {
+            "description": "Options for temporary JSON storage during conversion.",
+            "properties": {
+              "temp_url": {
+                "default": "{zarr_dir}/_tmp_json",
+                "description": "Template for the temporary JSON URL.",
+                "title": "Temp Url",
+                "type": "string"
+              }
+            },
+            "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "TilingMode": {
+            "enum": [
+              "Auto",
+              "Snap to Grid",
+              "Snap to Corners",
+              "Inplace",
+              "No Tiling"
+            ],
+            "title": "TilingMode",
+            "type": "string",
+            "description": "Missing description for TilingMode."
+          },
+          "WellExcludeFilter": {
+            "description": "Well exclude filter model.",
+            "properties": {
+              "name": {
+                "const": "Well Exclude Filter",
+                "default": "Well Exclude Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "wells_to_remove": {
+                "description": "List of well identifiers to remove. E.g., [\"A01\", \"B02\"]",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Wells To Remove",
+                "type": "array"
+              }
+            },
+            "required": [
+              "wells_to_remove"
+            ],
+            "title": "WellExcludeFilter",
+            "type": "object"
+          },
+          "WellIncludeFilter": {
+            "description": "Well include filter model.",
+            "properties": {
+              "name": {
+                "const": "Well Include Filter",
+                "default": "Well Include Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "wells_to_include": {
+                "description": "List of well identifiers to keep. E.g., [\"A01\", \"B02\"]",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Wells To Include",
+                "type": "array"
+              }
+            },
+            "required": [
+              "wells_to_include"
+            ],
+            "title": "WellIncludeFilter",
+            "type": "object"
+          },
+          "WriterMode": {
+            "enum": [
+              "By Tile",
+              "By FOV",
+              "By FOV (Using Dask)",
+              "By Tile (Using Dask)",
+              "In Memory"
+            ],
+            "title": "WriterMode",
+            "type": "string",
+            "description": "Missing description for WriterMode."
           }
         },
         "additionalProperties": false,
@@ -142,34 +735,47 @@
           },
           "acquisitions": {
             "items": {
-              "$ref": "#/$defs/LifPlateInputModel"
+              "$ref": "#/$defs/LifPlateAcquisitionModel"
             },
             "title": "Acquisitions",
             "type": "array",
             "description": "List of raw acquisitions to convert to OME-Zarr."
           },
-          "overwrite": {
-            "default": false,
-            "title": "Overwrite",
-            "type": "boolean",
-            "description": "Overwrite existing Zarr files."
-          },
-          "advanced_options": {
-            "$ref": "#/$defs/AdvancedOptions",
+          "converter_options": {
+            "$ref": "#/$defs/ConverterOptions",
             "default": {
-              "num_levels": 5,
-              "tiling_mode": "auto",
-              "swap_xy": false,
-              "invert_x": false,
-              "invert_y": false,
-              "max_xy_chunk": 4096,
-              "z_chunk": 10,
-              "c_chunk": 1,
-              "t_chunk": 1,
-              "position_scale": null
+              "writer_mode": "By FOV",
+              "tiling_mode": "Auto",
+              "tiling_tolerance": 0.0,
+              "alignment_correction": {
+                "align_t": false,
+                "align_xy": false,
+                "align_z": false
+              },
+              "omezarr_options": {
+                "chunks": {
+                  "c_chunk": 1,
+                  "mode": "Same as FOV",
+                  "t_chunk": 1,
+                  "xy_scaling": "1",
+                  "z_chunk": 10
+                },
+                "ngff_version": "0.4",
+                "num_levels": 5,
+                "table_backend": "anndata"
+              },
+              "temp_json_options": {
+                "temp_url": "{zarr_dir}/_tmp_json"
+              }
             },
-            "title": "Advanced Options",
-            "description": "Advanced options for the conversion."
+            "title": "Converter Options",
+            "description": "Advanced converter options."
+          },
+          "overwrite": {
+            "$ref": "#/$defs/OverwriteMode",
+            "default": "No Overwrite",
+            "title": "Overwrite",
+            "description": "Overwrite mode for existing data."
           }
         },
         "required": [
@@ -181,92 +787,326 @@
       },
       "args_schema_parallel": {
         "$defs": {
-          "AdvancedComputeOptions": {
-            "description": "Advanced options for the conversion.",
-            "properties": {
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer"
-              },
-              "tiling_mode": {
-                "default": "auto",
-                "enum": [
-                  "auto",
-                  "grid",
-                  "free",
-                  "none"
-                ],
-                "title": "Tiling Mode",
-                "type": "string"
-              },
-              "swap_xy": {
-                "default": false,
-                "title": "Swap Xy",
-                "type": "boolean"
-              },
-              "invert_x": {
-                "default": false,
-                "title": "Invert X",
-                "type": "boolean"
-              },
-              "invert_y": {
-                "default": false,
-                "title": "Invert Y",
-                "type": "boolean"
-              },
-              "max_xy_chunk": {
-                "default": 4096,
-                "minimum": 1,
-                "title": "Max Xy Chunk",
-                "type": "integer"
-              },
-              "z_chunk": {
-                "default": 10,
-                "minimum": 1,
-                "title": "Z Chunk",
-                "type": "integer"
-              },
-              "c_chunk": {
-                "default": 1,
-                "minimum": 1,
-                "title": "C Chunk",
-                "type": "integer"
-              },
-              "t_chunk": {
-                "default": 1,
-                "minimum": 1,
-                "title": "T Chunk",
-                "type": "integer"
-              }
-            },
-            "title": "AdvancedComputeOptions",
-            "type": "object"
+          "BackendType": {
+            "enum": [
+              "anndata",
+              "json",
+              "csv",
+              "parquet"
+            ],
+            "title": "BackendType",
+            "type": "string",
+            "description": "Missing description for BackendType."
           },
           "ConvertParallelInitArgs": {
             "description": "Arguments for the compute task.",
             "properties": {
-              "tiled_image_pickled_path": {
-                "title": "Tiled Image Pickled Path",
+              "tiled_image_json_dump_url": {
+                "title": "Tiled Image Json Dump Url",
                 "type": "string"
               },
-              "overwrite": {
-                "title": "Overwrite",
-                "type": "boolean"
+              "converter_options": {
+                "$ref": "#/$defs/ConverterOptions",
+                "title": "Converter_Options"
               },
-              "advanced_compute_options": {
-                "$ref": "#/$defs/AdvancedComputeOptions",
-                "title": "Advanced_Compute_Options"
+              "overwrite_mode": {
+                "$ref": "#/$defs/OverwriteMode",
+                "default": "No Overwrite",
+                "title": "Overwrite_Mode"
               }
             },
             "required": [
-              "tiled_image_pickled_path",
-              "overwrite",
-              "advanced_compute_options"
+              "tiled_image_json_dump_url",
+              "converter_options"
             ],
             "title": "ConvertParallelInitArgs",
             "type": "object"
+          },
+          "ConverterOptions": {
+            "additionalProperties": false,
+            "description": "Options for the OME-Zarr conversion process.",
+            "properties": {
+              "writer_mode": {
+                "$ref": "#/$defs/WriterMode",
+                "default": "By FOV",
+                "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
+                "title": "Writer Mode"
+              },
+              "tiling_mode": {
+                "$ref": "#/$defs/TilingMode",
+                "default": "Auto",
+                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "title": "Tiling Mode"
+              },
+              "tiling_tolerance": {
+                "default": 0,
+                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              },
+              "alignment_correction": {
+                "$ref": "#/$defs/StagePositionCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
+                "description": "Alignment correction options.",
+                "title": "Alignment Corrections"
+              },
+              "omezarr_options": {
+                "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
+                "title": "OME-Zarr Options"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
+              }
+            },
+            "title": "ConverterOptions",
+            "type": "object"
+          },
+          "FixedSizeChunking": {
+            "description": "Chunking strategy with fixed chunk sizes.",
+            "properties": {
+              "mode": {
+                "const": "Fixed Size",
+                "default": "Fixed Size",
+                "description": "Fixed size chunking.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_chunk": {
+                "default": 4096,
+                "description": "Chunk size for XY dimensions.",
+                "minimum": 1,
+                "title": "Chunk Size for XY",
+                "type": "integer"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FixedSizeChunking",
+            "type": "object"
+          },
+          "FovBasedChunking": {
+            "description": "Chunking strategy that matches the field of view.",
+            "properties": {
+              "mode": {
+                "const": "Same as FOV",
+                "default": "Same as FOV",
+                "description": "Chunking based on FOV size.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_scaling": {
+                "$ref": "#/$defs/Scalings",
+                "default": "1",
+                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches FOV size.\nIf set to 0.5, chunk size is half the FOV size (smaller chunks, more files).\nIf set to 2, chunk size is double the FOV size (larger chunks, less files).",
+                "title": "XY Scaling Factor"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FovBasedChunking",
+            "type": "object"
+          },
+          "OmeZarrOptions": {
+            "additionalProperties": false,
+            "description": "Options specific to OME-Zarr writing.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "description": "Number of resolution levels to create.",
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
+                "description": "Chunking strategy to use.",
+                "discriminator": {
+                  "mapping": {
+                    "Fixed Size": "#/$defs/FixedSizeChunking",
+                    "Same as FOV": "#/$defs/FovBasedChunking"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/FovBasedChunking"
+                  },
+                  {
+                    "$ref": "#/$defs/FixedSizeChunking"
+                  }
+                ],
+                "title": "Chunking Strategy"
+              },
+              "ngff_version": {
+                "default": "0.4",
+                "description": "Version of the OME-NGFF specification to target.",
+                "enum": [
+                  "0.4",
+                  "0.5"
+                ],
+                "title": "Ngff Version",
+                "type": "string"
+              },
+              "table_backend": {
+                "$ref": "#/$defs/BackendType",
+                "default": "anndata",
+                "description": "Backend type for storing tables.",
+                "title": "Table Backend"
+              }
+            },
+            "title": "OmeZarrOptions",
+            "type": "object"
+          },
+          "OverwriteMode": {
+            "enum": [
+              "No Overwrite",
+              "Overwrite",
+              "Extend"
+            ],
+            "title": "OverwriteMode",
+            "type": "string",
+            "description": "Missing description for OverwriteMode."
+          },
+          "Scalings": {
+            "enum": [
+              "0.25",
+              "0.5",
+              "1",
+              "2",
+              "4"
+            ],
+            "title": "Scalings",
+            "type": "string",
+            "description": "Missing description for Scalings."
+          },
+          "StagePositionCorrections": {
+            "additionalProperties": false,
+            "description": "Alignment correction for stage positions.",
+            "properties": {
+              "align_xy": {
+                "default": false,
+                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align XY",
+                "type": "boolean"
+              },
+              "align_z": {
+                "default": false,
+                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align Z",
+                "type": "boolean"
+              },
+              "align_t": {
+                "default": false,
+                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align T",
+                "type": "boolean"
+              }
+            },
+            "title": "StagePositionCorrections",
+            "type": "object"
+          },
+          "TempJsonOptions": {
+            "description": "Options for temporary JSON storage during conversion.",
+            "properties": {
+              "temp_url": {
+                "default": "{zarr_dir}/_tmp_json",
+                "description": "Template for the temporary JSON URL.",
+                "title": "Temp Url",
+                "type": "string"
+              }
+            },
+            "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "TilingMode": {
+            "enum": [
+              "Auto",
+              "Snap to Grid",
+              "Snap to Corners",
+              "Inplace",
+              "No Tiling"
+            ],
+            "title": "TilingMode",
+            "type": "string",
+            "description": "Missing description for TilingMode."
+          },
+          "WriterMode": {
+            "enum": [
+              "By Tile",
+              "By FOV",
+              "By FOV (Using Dask)",
+              "By Tile (Using Dask)",
+              "In Memory"
+            ],
+            "title": "WriterMode",
+            "type": "string",
+            "description": "Missing description for WriterMode."
           }
         },
         "additionalProperties": false,
@@ -279,7 +1119,7 @@
           "init_args": {
             "$ref": "#/$defs/ConvertParallelInitArgs",
             "title": "Init Args",
-            "description": "Arguments for the initialization task."
+            "description": "Arguments for the compute task."
           }
         },
         "required": [
@@ -287,7 +1127,7 @@
           "init_args"
         ],
         "type": "object",
-        "title": "ConvertLifComputeTask"
+        "title": "ImageInPlateComputeTask"
       },
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     },
@@ -300,8 +1140,8 @@
       ],
       "docs_info": "### Purpose\n\n- Convert a Leica LIF acquisition to a OME-Zarr Image.\n\n### Outputs\n\n- A OME-Zarr Image.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Leica LIF acquisitions.\n- This converter is does not support images exported in auto-saved mode.\n\n### Expected inputs\n\nThe following image layout are supported:\n\n* Single Position Image\n\n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1} (Simple Image)\n    ```\n\n* Multi Position Image\n  \n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1}/\n    --------/Position 1 (Simple Image)\n    --------/Position 2 (Simple Image)\n    --------/...\n    ```\n\n* Mosaique Image\n  \n    ```text\n    /{Project.lif}\n    ----/{Tilescan 1} (Mosaic Image)\n    ```\n\n\nThe names in curly braces `{}` can be freely chosen by the user. While\nthe othe names must follow the following format:\n\nIf the scene is a multi-position image, the positions must be named `Position` followed by a space and a positive integer. Valid examples are `Position 1`, `Position 2`, `Position 3`, `Position 12` etc.\n\nMoreover, if the lif file contains scans that do not follow the above formats, the converter will ignore them.\n",
       "type": "converter_compound",
-      "executable_non_parallel": "convert_lif_single_acq_init_task.py",
-      "executable_parallel": "convert_lif_compute_task.py",
+      "executable_non_parallel": "lif/single/convert_lif_single_acq_init_task.py",
+      "executable_parallel": "common/single_image_compute_task.py",
       "meta_non_parallel": {
         "cpus_per_task": 1,
         "mem": 4000
@@ -312,107 +1152,720 @@
       },
       "args_schema_non_parallel": {
         "$defs": {
-          "AdvancedOptions": {
-            "description": "Advanced options for the conversion.",
+          "BackendType": {
+            "enum": [
+              "anndata",
+              "json",
+              "csv",
+              "parquet"
+            ],
+            "title": "BackendType",
+            "type": "string",
+            "description": "Missing description for BackendType."
+          },
+          "ChannelInfo": {
+            "description": "Channel information.",
             "properties": {
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer",
-                "description": "The number of resolution levels in the pyramid."
+              "channel_label": {
+                "description": "Label of the channel.",
+                "title": "Channel Label",
+                "type": "string"
+              },
+              "wavelength_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
+                "title": "Wavelength Id"
+              },
+              "colors": {
+                "$ref": "#/$defs/DefaultColors",
+                "default": "Blue (0000FF)",
+                "description": "The color associated with the channel, e.g. for visualization purposes.",
+                "title": "Colors"
+              }
+            },
+            "required": [
+              "channel_label"
+            ],
+            "title": "ChannelInfo",
+            "type": "object"
+          },
+          "ConverterOptions": {
+            "additionalProperties": false,
+            "description": "Options for the OME-Zarr conversion process.",
+            "properties": {
+              "writer_mode": {
+                "$ref": "#/$defs/WriterMode",
+                "default": "By FOV",
+                "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
+                "title": "Writer Mode"
               },
               "tiling_mode": {
-                "default": "auto",
-                "enum": [
-                  "auto",
-                  "grid",
-                  "free",
-                  "none"
-                ],
-                "title": "Tiling Mode",
-                "type": "string",
-                "description": "Specify the tiling mode. \"auto\" will automatically determine the tiling mode. \"grid\" if the input data is a grid, it will be tiled using snap-to-grid. \"free\" will remove any overlap between tiles using a snap-to-corner approach. \"none\" will write the positions as is, using the microscope metadata."
+                "$ref": "#/$defs/TilingMode",
+                "default": "Auto",
+                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "title": "Tiling Mode"
               },
-              "swap_xy": {
-                "default": false,
-                "title": "Swap Xy",
-                "type": "boolean",
-                "description": "Swap x and y axes coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "tiling_tolerance": {
+                "default": 0,
+                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
               },
-              "invert_x": {
-                "default": false,
-                "title": "Invert X",
-                "type": "boolean",
-                "description": "Invert x axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "alignment_correction": {
+                "$ref": "#/$defs/StagePositionCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
+                "description": "Alignment correction options.",
+                "title": "Alignment Corrections"
               },
-              "invert_y": {
-                "default": false,
-                "title": "Invert Y",
-                "type": "boolean",
-                "description": "Invert y axis coordinates in the metadata. This is sometimes necessary to ensure correct image tiling and registration."
+              "omezarr_options": {
+                "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
+                "title": "OME-Zarr Options"
               },
-              "max_xy_chunk": {
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
+              }
+            },
+            "title": "ConverterOptions",
+            "type": "object"
+          },
+          "DataTypeEnum": {
+            "description": "Data type enumeration.",
+            "enum": [
+              "autodetect",
+              "uint8",
+              "uint16",
+              "uint32"
+            ],
+            "title": "DataTypeEnum",
+            "type": "string"
+          },
+          "DefaultColors": {
+            "description": "Default colors for the channels.",
+            "enum": [
+              "Blue (0000FF)",
+              "Red (FF0000)",
+              "Yellow (FFFF00)",
+              "Magenta (FF00FF)",
+              "Cyan (00FFFF)",
+              "Gray (808080)",
+              "Green (00FF00)",
+              "Orange (FF8000)",
+              "Purple (8000FF)",
+              "Teal (008080)",
+              "Lime (00FF80)",
+              "Amber (FFBF00)",
+              "Pink (FF0080)",
+              "Navy (000080)",
+              "Maroon (800000)",
+              "Olive (808000)",
+              "Coral (FF7F50)",
+              "Violet (8000FF)"
+            ],
+            "title": "DefaultColors",
+            "type": "string"
+          },
+          "FixedSizeChunking": {
+            "description": "Chunking strategy with fixed chunk sizes.",
+            "properties": {
+              "mode": {
+                "const": "Fixed Size",
+                "default": "Fixed Size",
+                "description": "Fixed size chunking.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_chunk": {
                 "default": 4096,
+                "description": "Chunk size for XY dimensions.",
                 "minimum": 1,
-                "title": "Max Xy Chunk",
-                "type": "integer",
-                "description": "XY chunk size is set as the minimum of this value and the microscope tile size."
+                "title": "Chunk Size for XY",
+                "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
+                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
-                "title": "Z Chunk",
-                "type": "integer",
-                "description": "Z chunk size."
+                "title": "Chunk Size for Z",
+                "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
+                "description": "Chunk size for C dimension.",
                 "minimum": 1,
-                "title": "C Chunk",
-                "type": "integer",
-                "description": "C chunk size."
+                "title": "Chunk Size for C",
+                "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
+                "description": "Chunk size for T dimension.",
                 "minimum": 1,
-                "title": "T Chunk",
-                "type": "integer",
-                "description": "T chunk size."
-              },
-              "position_scale": {
-                "title": "Position Scale",
-                "type": "number",
-                "description": "Scale factor for the position coordinates."
+                "title": "Chunk Size for T",
+                "type": "integer"
               }
             },
-            "title": "AdvancedOptions",
+            "title": "FixedSizeChunking",
             "type": "object"
           },
-          "LifSingleAcqInputModel": {
-            "description": "Acquisition metadata.",
+          "FovBasedChunking": {
+            "description": "Chunking strategy that matches the field of view.",
+            "properties": {
+              "mode": {
+                "const": "Same as FOV",
+                "default": "Same as FOV",
+                "description": "Chunking based on FOV size.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_scaling": {
+                "$ref": "#/$defs/Scalings",
+                "default": "1",
+                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches FOV size.\nIf set to 0.5, chunk size is half the FOV size (smaller chunks, more files).\nIf set to 2, chunk size is double the FOV size (larger chunks, less files).",
+                "title": "XY Scaling Factor"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FovBasedChunking",
+            "type": "object"
+          },
+          "LifAcquisitionOptions": {
+            "description": "Acquisition options specific to LIF conversion.",
+            "properties": {
+              "channels": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/ChannelInfo"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "List of channel information.",
+                "title": "Channels"
+              },
+              "pixel_info": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/PixelSizeModel"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Pixel size information.",
+                "title": "Pixel Size Information"
+              },
+              "condition_table_path": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional path to a condition table CSV file.",
+                "title": "Condition Table Path"
+              },
+              "axes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Axes to use for the image data, e.g. \"czyx\".",
+                "title": "Axes"
+              },
+              "data_type": {
+                "$ref": "#/$defs/DataTypeEnum",
+                "default": "autodetect",
+                "description": "Data type of the image data.",
+                "title": "Data Type"
+              },
+              "stage_corrections": {
+                "$ref": "#/$defs/StageOrientation",
+                "default": {
+                  "flip_x": false,
+                  "flip_y": false,
+                  "swap_xy": false
+                },
+                "title": "Stage Corrections"
+              },
+              "filters": {
+                "default": [],
+                "description": "List of filters to apply.",
+                "items": {
+                  "discriminator": {
+                    "mapping": {
+                      "Path Regex Exclude Filter": "#/$defs/RegexExcludeFilter",
+                      "Path Regex Include Filter": "#/$defs/RegexIncludeFilter",
+                      "Well Exclude Filter": "#/$defs/WellExcludeFilter",
+                      "Well Include Filter": "#/$defs/WellIncludeFilter"
+                    },
+                    "propertyName": "name"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/RegexExcludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/RegexIncludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/WellExcludeFilter"
+                    },
+                    {
+                      "$ref": "#/$defs/WellIncludeFilter"
+                    }
+                  ]
+                },
+                "title": "Filters",
+                "type": "array"
+              },
+              "position_scale": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Scale factor (m/px) overriding ``lif_image.scale_n[10]``. Set when stage\ncoordinates need a non-default unit conversion.",
+                "title": "Position Scale"
+              }
+            },
+            "title": "LifAcquisitionOptions",
+            "type": "object"
+          },
+          "LifSingleAcqAcquisitionModel": {
+            "description": "Acquisition input model for LIF single-acquisition conversion.",
             "properties": {
               "path": {
+                "description": "Path to the acquisition LIF file or directory containing the LIF file(s).",
                 "title": "Path",
-                "type": "string",
-                "description": "Path to the lif file."
+                "type": "string"
+              },
+              "plate_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional custom name for the plate. If not provided, the name will be the\nacquisition directory name.",
+                "title": "Plate Name"
+              },
+              "acquisition_id": {
+                "default": 0,
+                "description": "Acquisition ID, used to identify the acquisition in case of multiple acquisitions.",
+                "minimum": 0,
+                "title": "Acquisition Id",
+                "type": "integer"
+              },
+              "advanced": {
+                "$ref": "#/$defs/LifAcquisitionOptions",
+                "default": {
+                  "channels": null,
+                  "pixel_info": null,
+                  "condition_table_path": null,
+                  "axes": null,
+                  "data_type": "autodetect",
+                  "stage_corrections": {
+                    "flip_x": false,
+                    "flip_y": false,
+                    "swap_xy": false
+                  },
+                  "filters": [],
+                  "position_scale": null
+                },
+                "description": "Advanced acquisition options (LIF-specific).",
+                "title": "Advanced"
               },
               "tile_scan_name": {
-                "title": "Tile Scan Name",
-                "type": "string",
-                "description": "Optional name of the tile scan. If not provided, all tile scans will be considered."
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional name of the tile scan. If ``None``, all scans in the LIF file are\nprocessed (wildcard mode).",
+                "title": "Tile Scan Name"
               },
               "zarr_name": {
-                "title": "Zarr Name",
-                "type": "string",
-                "description": "Optional name of the Zarr file. If not provided, the name will be generated from the lif file name + tile scan name. If the tile scan name is not provided, theis field can not be used."
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Optional zarr name. ``None`` derives the name as ``{lif_stem}_{scan_name}``.\nCannot be used in wildcard mode (when ``tile_scan_name`` is None).",
+                "title": "Zarr Name"
               }
             },
             "required": [
               "path"
             ],
-            "title": "LifSingleAcqInputModel",
+            "title": "LifSingleAcqAcquisitionModel",
             "type": "object"
+          },
+          "OmeZarrOptions": {
+            "additionalProperties": false,
+            "description": "Options specific to OME-Zarr writing.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "description": "Number of resolution levels to create.",
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
+                "description": "Chunking strategy to use.",
+                "discriminator": {
+                  "mapping": {
+                    "Fixed Size": "#/$defs/FixedSizeChunking",
+                    "Same as FOV": "#/$defs/FovBasedChunking"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/FovBasedChunking"
+                  },
+                  {
+                    "$ref": "#/$defs/FixedSizeChunking"
+                  }
+                ],
+                "title": "Chunking Strategy"
+              },
+              "ngff_version": {
+                "default": "0.4",
+                "description": "Version of the OME-NGFF specification to target.",
+                "enum": [
+                  "0.4",
+                  "0.5"
+                ],
+                "title": "Ngff Version",
+                "type": "string"
+              },
+              "table_backend": {
+                "$ref": "#/$defs/BackendType",
+                "default": "anndata",
+                "description": "Backend type for storing tables.",
+                "title": "Table Backend"
+              }
+            },
+            "title": "OmeZarrOptions",
+            "type": "object"
+          },
+          "OverwriteMode": {
+            "enum": [
+              "No Overwrite",
+              "Overwrite",
+              "Extend"
+            ],
+            "title": "OverwriteMode",
+            "type": "string",
+            "description": "Missing description for OverwriteMode."
+          },
+          "PixelSizeModel": {
+            "description": "Pixel size model.",
+            "properties": {
+              "pixelsize": {
+                "description": "Pixel size in micrometers.",
+                "title": "Pixelsize",
+                "type": "number"
+              },
+              "z_spacing": {
+                "description": "Z spacing in micrometers.",
+                "title": "Z Spacing",
+                "type": "number"
+              },
+              "t_spacing": {
+                "description": "Time spacing in seconds.",
+                "title": "T Spacing",
+                "type": "number"
+              }
+            },
+            "required": [
+              "pixelsize",
+              "z_spacing",
+              "t_spacing"
+            ],
+            "title": "PixelSizeModel",
+            "type": "object"
+          },
+          "RegexExcludeFilter": {
+            "description": "Regex exclude filter model.",
+            "properties": {
+              "name": {
+                "const": "Path Regex Exclude Filter",
+                "default": "Path Regex Exclude Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex pattern to exclude. If the tile's base path matches this regex,\nit will be excluded, otherwise it will be included.",
+                "title": "Regex",
+                "type": "string"
+              }
+            },
+            "required": [
+              "regex"
+            ],
+            "title": "RegexExcludeFilter",
+            "type": "object"
+          },
+          "RegexIncludeFilter": {
+            "description": "Regex include filter model.",
+            "properties": {
+              "name": {
+                "const": "Path Regex Include Filter",
+                "default": "Path Regex Include Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex pattern to include. If the tile's base path matches this regex,\nit will be included, otherwise it will be excluded.",
+                "title": "Regex",
+                "type": "string"
+              }
+            },
+            "required": [
+              "regex"
+            ],
+            "title": "RegexIncludeFilter",
+            "type": "object"
+          },
+          "Scalings": {
+            "enum": [
+              "0.25",
+              "0.5",
+              "1",
+              "2",
+              "4"
+            ],
+            "title": "Scalings",
+            "type": "string",
+            "description": "Missing description for Scalings."
+          },
+          "StageOrientation": {
+            "additionalProperties": false,
+            "description": "Stage orientation corrections.",
+            "properties": {
+              "flip_x": {
+                "default": false,
+                "description": "Whether to flip the position along the X axis.",
+                "title": "Flip X",
+                "type": "boolean"
+              },
+              "flip_y": {
+                "default": false,
+                "description": "Whether to flip the position along the Y axis.",
+                "title": "Flip Y",
+                "type": "boolean"
+              },
+              "swap_xy": {
+                "default": false,
+                "description": "Whether to swap the positions along the X and Y axes.",
+                "title": "Swap XY",
+                "type": "boolean"
+              }
+            },
+            "title": "StageOrientation",
+            "type": "object"
+          },
+          "StagePositionCorrections": {
+            "additionalProperties": false,
+            "description": "Alignment correction for stage positions.",
+            "properties": {
+              "align_xy": {
+                "default": false,
+                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align XY",
+                "type": "boolean"
+              },
+              "align_z": {
+                "default": false,
+                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align Z",
+                "type": "boolean"
+              },
+              "align_t": {
+                "default": false,
+                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align T",
+                "type": "boolean"
+              }
+            },
+            "title": "StagePositionCorrections",
+            "type": "object"
+          },
+          "TempJsonOptions": {
+            "description": "Options for temporary JSON storage during conversion.",
+            "properties": {
+              "temp_url": {
+                "default": "{zarr_dir}/_tmp_json",
+                "description": "Template for the temporary JSON URL.",
+                "title": "Temp Url",
+                "type": "string"
+              }
+            },
+            "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "TilingMode": {
+            "enum": [
+              "Auto",
+              "Snap to Grid",
+              "Snap to Corners",
+              "Inplace",
+              "No Tiling"
+            ],
+            "title": "TilingMode",
+            "type": "string",
+            "description": "Missing description for TilingMode."
+          },
+          "WellExcludeFilter": {
+            "description": "Well exclude filter model.",
+            "properties": {
+              "name": {
+                "const": "Well Exclude Filter",
+                "default": "Well Exclude Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "wells_to_remove": {
+                "description": "List of well identifiers to remove. E.g., [\"A01\", \"B02\"]",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Wells To Remove",
+                "type": "array"
+              }
+            },
+            "required": [
+              "wells_to_remove"
+            ],
+            "title": "WellExcludeFilter",
+            "type": "object"
+          },
+          "WellIncludeFilter": {
+            "description": "Well include filter model.",
+            "properties": {
+              "name": {
+                "const": "Well Include Filter",
+                "default": "Well Include Filter",
+                "description": "Name of the filter.",
+                "title": "Name",
+                "type": "string"
+              },
+              "wells_to_include": {
+                "description": "List of well identifiers to keep. E.g., [\"A01\", \"B02\"]",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Wells To Include",
+                "type": "array"
+              }
+            },
+            "required": [
+              "wells_to_include"
+            ],
+            "title": "WellIncludeFilter",
+            "type": "object"
+          },
+          "WriterMode": {
+            "enum": [
+              "By Tile",
+              "By FOV",
+              "By FOV (Using Dask)",
+              "By Tile (Using Dask)",
+              "In Memory"
+            ],
+            "title": "WriterMode",
+            "type": "string",
+            "description": "Missing description for WriterMode."
           }
         },
         "additionalProperties": false,
@@ -424,34 +1877,47 @@
           },
           "acquisitions": {
             "items": {
-              "$ref": "#/$defs/LifSingleAcqInputModel"
+              "$ref": "#/$defs/LifSingleAcqAcquisitionModel"
             },
             "title": "Acquisitions",
             "type": "array",
             "description": "List of raw acquisitions to convert to OME-Zarr."
           },
-          "overwrite": {
-            "default": false,
-            "title": "Overwrite",
-            "type": "boolean",
-            "description": "Overwrite existing Zarr files."
-          },
-          "advanced_options": {
-            "$ref": "#/$defs/AdvancedOptions",
+          "converter_options": {
+            "$ref": "#/$defs/ConverterOptions",
             "default": {
-              "num_levels": 5,
-              "tiling_mode": "auto",
-              "swap_xy": false,
-              "invert_x": false,
-              "invert_y": false,
-              "max_xy_chunk": 4096,
-              "z_chunk": 10,
-              "c_chunk": 1,
-              "t_chunk": 1,
-              "position_scale": null
+              "writer_mode": "By FOV",
+              "tiling_mode": "Auto",
+              "tiling_tolerance": 0.0,
+              "alignment_correction": {
+                "align_t": false,
+                "align_xy": false,
+                "align_z": false
+              },
+              "omezarr_options": {
+                "chunks": {
+                  "c_chunk": 1,
+                  "mode": "Same as FOV",
+                  "t_chunk": 1,
+                  "xy_scaling": "1",
+                  "z_chunk": 10
+                },
+                "ngff_version": "0.4",
+                "num_levels": 5,
+                "table_backend": "anndata"
+              },
+              "temp_json_options": {
+                "temp_url": "{zarr_dir}/_tmp_json"
+              }
             },
-            "title": "Advanced Options",
-            "description": "Advanced options for the conversion."
+            "title": "Converter Options",
+            "description": "Advanced converter options."
+          },
+          "overwrite": {
+            "$ref": "#/$defs/OverwriteMode",
+            "default": "No Overwrite",
+            "title": "Overwrite",
+            "description": "Overwrite mode for existing data."
           }
         },
         "required": [
@@ -463,92 +1929,326 @@
       },
       "args_schema_parallel": {
         "$defs": {
-          "AdvancedComputeOptions": {
-            "description": "Advanced options for the conversion.",
-            "properties": {
-              "num_levels": {
-                "default": 5,
-                "minimum": 1,
-                "title": "Num Levels",
-                "type": "integer"
-              },
-              "tiling_mode": {
-                "default": "auto",
-                "enum": [
-                  "auto",
-                  "grid",
-                  "free",
-                  "none"
-                ],
-                "title": "Tiling Mode",
-                "type": "string"
-              },
-              "swap_xy": {
-                "default": false,
-                "title": "Swap Xy",
-                "type": "boolean"
-              },
-              "invert_x": {
-                "default": false,
-                "title": "Invert X",
-                "type": "boolean"
-              },
-              "invert_y": {
-                "default": false,
-                "title": "Invert Y",
-                "type": "boolean"
-              },
-              "max_xy_chunk": {
-                "default": 4096,
-                "minimum": 1,
-                "title": "Max Xy Chunk",
-                "type": "integer"
-              },
-              "z_chunk": {
-                "default": 10,
-                "minimum": 1,
-                "title": "Z Chunk",
-                "type": "integer"
-              },
-              "c_chunk": {
-                "default": 1,
-                "minimum": 1,
-                "title": "C Chunk",
-                "type": "integer"
-              },
-              "t_chunk": {
-                "default": 1,
-                "minimum": 1,
-                "title": "T Chunk",
-                "type": "integer"
-              }
-            },
-            "title": "AdvancedComputeOptions",
-            "type": "object"
+          "BackendType": {
+            "enum": [
+              "anndata",
+              "json",
+              "csv",
+              "parquet"
+            ],
+            "title": "BackendType",
+            "type": "string",
+            "description": "Missing description for BackendType."
           },
           "ConvertParallelInitArgs": {
             "description": "Arguments for the compute task.",
             "properties": {
-              "tiled_image_pickled_path": {
-                "title": "Tiled Image Pickled Path",
+              "tiled_image_json_dump_url": {
+                "title": "Tiled Image Json Dump Url",
                 "type": "string"
               },
-              "overwrite": {
-                "title": "Overwrite",
-                "type": "boolean"
+              "converter_options": {
+                "$ref": "#/$defs/ConverterOptions",
+                "title": "Converter_Options"
               },
-              "advanced_compute_options": {
-                "$ref": "#/$defs/AdvancedComputeOptions",
-                "title": "Advanced_Compute_Options"
+              "overwrite_mode": {
+                "$ref": "#/$defs/OverwriteMode",
+                "default": "No Overwrite",
+                "title": "Overwrite_Mode"
               }
             },
             "required": [
-              "tiled_image_pickled_path",
-              "overwrite",
-              "advanced_compute_options"
+              "tiled_image_json_dump_url",
+              "converter_options"
             ],
             "title": "ConvertParallelInitArgs",
             "type": "object"
+          },
+          "ConverterOptions": {
+            "additionalProperties": false,
+            "description": "Options for the OME-Zarr conversion process.",
+            "properties": {
+              "writer_mode": {
+                "$ref": "#/$defs/WriterMode",
+                "default": "By FOV",
+                "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
+                "title": "Writer Mode"
+              },
+              "tiling_mode": {
+                "$ref": "#/$defs/TilingMode",
+                "default": "Auto",
+                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "title": "Tiling Mode"
+              },
+              "tiling_tolerance": {
+                "default": 0,
+                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              },
+              "alignment_correction": {
+                "$ref": "#/$defs/StagePositionCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
+                "description": "Alignment correction options.",
+                "title": "Alignment Corrections"
+              },
+              "omezarr_options": {
+                "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
+                "title": "OME-Zarr Options"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
+              }
+            },
+            "title": "ConverterOptions",
+            "type": "object"
+          },
+          "FixedSizeChunking": {
+            "description": "Chunking strategy with fixed chunk sizes.",
+            "properties": {
+              "mode": {
+                "const": "Fixed Size",
+                "default": "Fixed Size",
+                "description": "Fixed size chunking.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_chunk": {
+                "default": 4096,
+                "description": "Chunk size for XY dimensions.",
+                "minimum": 1,
+                "title": "Chunk Size for XY",
+                "type": "integer"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FixedSizeChunking",
+            "type": "object"
+          },
+          "FovBasedChunking": {
+            "description": "Chunking strategy that matches the field of view.",
+            "properties": {
+              "mode": {
+                "const": "Same as FOV",
+                "default": "Same as FOV",
+                "description": "Chunking based on FOV size.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "xy_scaling": {
+                "$ref": "#/$defs/Scalings",
+                "default": "1",
+                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches FOV size.\nIf set to 0.5, chunk size is half the FOV size (smaller chunks, more files).\nIf set to 2, chunk size is double the FOV size (larger chunks, less files).",
+                "title": "XY Scaling Factor"
+              },
+              "z_chunk": {
+                "default": 10,
+                "description": "Chunk size for Z dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for Z",
+                "type": "integer"
+              },
+              "c_chunk": {
+                "default": 1,
+                "description": "Chunk size for C dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for C",
+                "type": "integer"
+              },
+              "t_chunk": {
+                "default": 1,
+                "description": "Chunk size for T dimension.",
+                "minimum": 1,
+                "title": "Chunk Size for T",
+                "type": "integer"
+              }
+            },
+            "title": "FovBasedChunking",
+            "type": "object"
+          },
+          "OmeZarrOptions": {
+            "additionalProperties": false,
+            "description": "Options specific to OME-Zarr writing.",
+            "properties": {
+              "num_levels": {
+                "default": 5,
+                "description": "Number of resolution levels to create.",
+                "minimum": 1,
+                "title": "Num Levels",
+                "type": "integer"
+              },
+              "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
+                "description": "Chunking strategy to use.",
+                "discriminator": {
+                  "mapping": {
+                    "Fixed Size": "#/$defs/FixedSizeChunking",
+                    "Same as FOV": "#/$defs/FovBasedChunking"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/FovBasedChunking"
+                  },
+                  {
+                    "$ref": "#/$defs/FixedSizeChunking"
+                  }
+                ],
+                "title": "Chunking Strategy"
+              },
+              "ngff_version": {
+                "default": "0.4",
+                "description": "Version of the OME-NGFF specification to target.",
+                "enum": [
+                  "0.4",
+                  "0.5"
+                ],
+                "title": "Ngff Version",
+                "type": "string"
+              },
+              "table_backend": {
+                "$ref": "#/$defs/BackendType",
+                "default": "anndata",
+                "description": "Backend type for storing tables.",
+                "title": "Table Backend"
+              }
+            },
+            "title": "OmeZarrOptions",
+            "type": "object"
+          },
+          "OverwriteMode": {
+            "enum": [
+              "No Overwrite",
+              "Overwrite",
+              "Extend"
+            ],
+            "title": "OverwriteMode",
+            "type": "string",
+            "description": "Missing description for OverwriteMode."
+          },
+          "Scalings": {
+            "enum": [
+              "0.25",
+              "0.5",
+              "1",
+              "2",
+              "4"
+            ],
+            "title": "Scalings",
+            "type": "string",
+            "description": "Missing description for Scalings."
+          },
+          "StagePositionCorrections": {
+            "additionalProperties": false,
+            "description": "Alignment correction for stage positions.",
+            "properties": {
+              "align_xy": {
+                "default": false,
+                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align XY",
+                "type": "boolean"
+              },
+              "align_z": {
+                "default": false,
+                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align Z",
+                "type": "boolean"
+              },
+              "align_t": {
+                "default": false,
+                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during image acquisition.",
+                "title": "Align T",
+                "type": "boolean"
+              }
+            },
+            "title": "StagePositionCorrections",
+            "type": "object"
+          },
+          "TempJsonOptions": {
+            "description": "Options for temporary JSON storage during conversion.",
+            "properties": {
+              "temp_url": {
+                "default": "{zarr_dir}/_tmp_json",
+                "description": "Template for the temporary JSON URL.",
+                "title": "Temp Url",
+                "type": "string"
+              }
+            },
+            "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "TilingMode": {
+            "enum": [
+              "Auto",
+              "Snap to Grid",
+              "Snap to Corners",
+              "Inplace",
+              "No Tiling"
+            ],
+            "title": "TilingMode",
+            "type": "string",
+            "description": "Missing description for TilingMode."
+          },
+          "WriterMode": {
+            "enum": [
+              "By Tile",
+              "By FOV",
+              "By FOV (Using Dask)",
+              "By Tile (Using Dask)",
+              "In Memory"
+            ],
+            "title": "WriterMode",
+            "type": "string",
+            "description": "Missing description for WriterMode."
           }
         },
         "additionalProperties": false,
@@ -561,7 +2261,7 @@
           "init_args": {
             "$ref": "#/$defs/ConvertParallelInitArgs",
             "title": "Init Args",
-            "description": "Arguments for the initialization task."
+            "description": "Arguments for the compute task."
           }
         },
         "required": [
@@ -569,12 +2269,12 @@
           "init_args"
         ],
         "type": "object",
-        "title": "ConvertLifComputeTask"
+        "title": "SingleImageComputeTask"
       },
       "docs_link": "https://github.com/fractal-analytics-platform/fractal-lif-converters"
     }
   ],
   "has_args_schemas": true,
-  "args_schema_version": "pydantic_v2",
-  "authors": "Fractal Core Team"
+  "args_schema_version": "fractal_schema_v1",
+  "authors": "Lorenzo Cerrone"
 }
