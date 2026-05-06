@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from readlif.reader import LifFile
 from readlif.utilities import get_xml
 
-from fractal_lif_converters.common.loaders import LifMosaicLoader, LifSingleLoader
+from fractal_lif_converters.common.loaders import LifMosaicLoader
 
 
 class ImageType(Enum):
@@ -206,9 +206,10 @@ def _build_single_tile(
     x_um = float(tile_info.get("PosX", 0)) / scale
     y_um = float(tile_info.get("PosY", 0)) / scale
 
-    loader = LifSingleLoader(
+    loader = LifMosaicLoader(
         file_path=lif_image.filename,
         image_id=image_id,
+        m=0,
     )
     return Tile(
         fov_name=fov_name,

@@ -51,16 +51,3 @@ class LifMosaicLoader(ImageLoaderInterface):
         return _peek_lif_dtype(self.file_path, self.image_id, self.m)
 
 
-class LifSingleLoader(ImageLoaderInterface):
-    """Loader for a single-position LIF image (each FOV is its own LifImage)."""
-
-    file_path: str
-    image_id: int
-
-    def load_data(self, resource: Any = None) -> np.ndarray:
-        """Load the single-position image data as a NumPy array."""
-        return _load_lif_array(self.file_path, self.image_id, m=0)
-
-    def find_data_type(self, resource: Any = None) -> str:
-        """Find the dtype of the image data without loading the full stack."""
-        return _peek_lif_dtype(self.file_path, self.image_id, m=0)
