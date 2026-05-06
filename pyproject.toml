@@ -44,7 +44,7 @@ dependencies = [
     "ngio>=0.5.8,<0.6.0",
     "numpy",
     "pydantic",
-    "readlif",
+    "liffile>=2026.2.16",
     "polars",
 ]
 

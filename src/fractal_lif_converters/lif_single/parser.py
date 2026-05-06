@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import liffile
 from ome_zarr_converters_tools import (
     AcquisitionDetails,
     ConverterOptions,
@@ -14,7 +15,6 @@ from ome_zarr_converters_tools import (
     default_axes_builder,
     tiles_aggregation_pipeline,
 )
-from readlif.reader import LifFile
 
 from fractal_lif_converters.common.string_validation import (
     validate_position_name_type1,
@@ -39,7 +39,7 @@ def _sanitize_scan_name(name: str) -> str:
 
 
 def _simple_parse_lif_infos(
-    lif_file: LifFile, scan_name: str
+    lif_file: liffile.LifFile, scan_name: str
 ) -> tuple[dict[str, list[_ImageInfo]], set[str]]:
     """Discover scans matching ``scan_name`` (named mode).
 
@@ -50,13 +50,13 @@ def _simple_parse_lif_infos(
     images: list[_ImageInfo] = []
     discarded: set[str] = set()
 
-    for image_id, meta in enumerate(lif_file.image_list):
-        name = meta["name"]
+    for image_id, lif_image in enumerate(lif_file.images):
+        name = lif_image.path
         if name == scan_name:
             images.append(
                 _ImageInfo(
                     image_id=image_id,
-                    image_type=ImageType.from_metadata(meta),
+                    image_type=ImageType.from_lif_image(lif_image),
                     scan_name=sanitized,
                 )
             )
@@ -69,7 +69,7 @@ def _simple_parse_lif_infos(
                 images.append(
                     _ImageInfo(
                         image_id=image_id,
-                        image_type=ImageType.from_metadata(meta),
+                        image_type=ImageType.from_lif_image(lif_image),
                         scan_name=sanitized,
                         position_name=pos_suffix,
                     )
@@ -80,14 +80,14 @@ def _simple_parse_lif_infos(
     if not images:
         raise ValueError(
             f"Tile Scan {scan_name} not found in the Lif file at path: "
-            f"{lif_file.filename}."
+            f"{lif_file.filepath}."
         )
 
     return {sanitized: images}, discarded
 
 
 def _wildcard_parse_lif_infos(
-    lif_file: LifFile,
+    lif_file: liffile.LifFile,
 ) -> tuple[dict[str, list[_ImageInfo]], set[str]]:
     """Discover all scans (wildcard mode).
 
@@ -96,8 +96,8 @@ def _wildcard_parse_lif_infos(
     """
     base_scan_names: set[str] = set()
     discarded: set[str] = set()
-    for meta in lif_file.image_list:
-        name = meta["name"]
+    for lif_image in lif_file.images:
+        name = lif_image.path
         scans = name.split("/")
         if not scans:
             raise ValueError(f"Invalid scan name: {name}")
@@ -111,7 +111,7 @@ def _wildcard_parse_lif_infos(
         ok2, _ = validate_position_name_type2(pos_suffix)
         if ok1 or ok2:
             base_scan_names.add("/".join(scans[:-1]))
-        elif ImageType.from_metadata(meta) is ImageType.MOSAIC:
+        elif ImageType.from_lif_image(lif_image) is ImageType.MOSAIC:
             base_scan_names.add(name)
         else:
             discarded.add(name)
@@ -125,19 +125,26 @@ def _wildcard_parse_lif_infos(
     return images, discarded
 
 
+def _pixel_size_um(lif_image: Any, dim: str) -> float:
+    coords = lif_image.coords.get(dim)
+    if coords is not None and len(coords) > 1:
+        return abs((coords[-1] - coords[0]) / (len(coords) - 1)) * 1e6
+    return 1.0
+
+
 def _make_acquisition_details_factory(
     acquisition_model: LifSingleAcqAcquisitionModel,
 ):
     def _factory(lif_image: Any) -> AcquisitionDetails:
-        scale_x = 1 / lif_image.scale_n.get(1, 1)
-        scale_y = 1 / lif_image.scale_n.get(2, 1)
-        scale_z = 1 / lif_image.scale_n.get(3, 1)
+        scale_x = _pixel_size_um(lif_image, "X")
+        scale_y = _pixel_size_um(lif_image, "Y")
+        scale_z = _pixel_size_um(lif_image, "Z")
         if abs(scale_x - scale_y) > 1e-9:
             logger.warning(
                 f"Pixel size x ({scale_x}) and y ({scale_y}) are not equal. "
                 "Using x size for pixelsize."
             )
-        shape_t = lif_image.dims_n.get(4, 1)
+        shape_t = lif_image.sizes.get("T", 1)
         details = AcquisitionDetails(
             pixelsize=scale_x,
             z_spacing=scale_z,
@@ -167,7 +174,7 @@ def parse_lif_single_acq_metadata(
 ) -> list[TiledImage]:
     """Parse LIF single-acquisition metadata and return ``TiledImage`` objects."""
     lif_path = acquisition_model.path
-    lif_file = LifFile(lif_path)
+    lif_file = liffile.LifFile(lif_path, squeeze=False)
 
     if acquisition_model.tile_scan_name is not None:
         images, discarded = _simple_parse_lif_infos(
@@ -179,7 +186,7 @@ def parse_lif_single_acq_metadata(
     if discarded:
         logger.info(
             f"Discarded images: {discarded} from the Lif file at path: "
-            f"{lif_file.filename}"
+            f"{lif_file.filepath}"
         )
 
     lif_stem = Path(lif_path).stem
