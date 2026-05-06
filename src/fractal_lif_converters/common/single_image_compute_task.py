@@ -15,7 +15,7 @@ from ome_zarr_converters_tools import (
 )
 from pydantic import validate_call
 
-from fractal_lif_converters.lif.loaders import LifSingleLoader
+from fractal_lif_converters.common.loaders import LifSingleLoader
 
 logger = logging.getLogger(__name__)
 

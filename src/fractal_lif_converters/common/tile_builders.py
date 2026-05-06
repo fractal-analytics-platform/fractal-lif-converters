@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from readlif.reader import LifFile
 from readlif.utilities import get_xml
 
-from fractal_lif_converters.lif.loaders import LifMosaicLoader, LifSingleLoader
+from fractal_lif_converters.common.loaders import LifMosaicLoader, LifSingleLoader
 
 
 class ImageType(Enum):

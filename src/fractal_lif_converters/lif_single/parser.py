@@ -16,18 +16,18 @@ from ome_zarr_converters_tools import (
 )
 from readlif.reader import LifFile
 
-from fractal_lif_converters.lif.string_validation import (
+from fractal_lif_converters.common.string_validation import (
     validate_position_name_type1,
     validate_position_name_type2,
 )
-from fractal_lif_converters.lif.tile_builders import (
+from fractal_lif_converters.common.tile_builders import (
     ImageType,
     _ImageInfo,
     build_single_acq_tiles,
 )
 
 if TYPE_CHECKING:
-    from fractal_lif_converters.lif.single.convert_lif_single_acq_init_task import (
+    from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
         LifSingleAcqAcquisitionModel,
     )
 

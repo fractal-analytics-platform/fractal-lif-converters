@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from fractal_lif_converters.common import image_in_plate_compute_task
-from fractal_lif_converters.lif.plate.convert_lif_plate_init_task import (
+from fractal_lif_converters.lif_plate.convert_lif_plate_init_task import (
     convert_lif_plate_init_task,
 )
 

@@ -13,8 +13,8 @@ from fractal_lif_converters.common import (
     BaseAcquisitionModel,
     parse_acquisitions,
 )
-from fractal_lif_converters.lif.options import LifAcquisitionOptions
-from fractal_lif_converters.lif.single.parser import parse_lif_single_acq_metadata
+from fractal_lif_converters.common.options import LifAcquisitionOptions
+from fractal_lif_converters.lif_single.parser import parse_lif_single_acq_metadata
 
 logger = logging.getLogger("convert_lif_single_acq_task")
 

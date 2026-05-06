@@ -9,7 +9,7 @@ DOCS_LINK = "https://github.com/fractal-analytics-platform/fractal-lif-converter
 TASK_LIST = [
     ConverterCompoundTask(
         name="Convert Lif Plate to OME-Zarr",
-        executable_init="lif/plate/convert_lif_plate_init_task.py",
+        executable_init="lif_plate/convert_lif_plate_init_task.py",
         executable="common/image_in_plate_compute_task.py",
         meta_init={"cpus_per_task": 1, "mem": 4000},
         meta={"cpus_per_task": 1, "mem": 12000},
@@ -20,7 +20,7 @@ TASK_LIST = [
     ),
     ConverterCompoundTask(
         name="Convert Lif Scene to OME-Zarr",
-        executable_init="lif/single/convert_lif_single_acq_init_task.py",
+        executable_init="lif_single/convert_lif_single_acq_init_task.py",
         executable="common/single_image_compute_task.py",
         meta_init={"cpus_per_task": 1, "mem": 4000},
         meta={"cpus_per_task": 1, "mem": 12000},
