@@ -46,6 +46,7 @@ dependencies = [
     "pydantic",
     "liffile>=2026.2.16",
     "polars",
+    "imagecodecs",
 ]
 
 # Required Python version and dependencies
