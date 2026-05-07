@@ -25,19 +25,29 @@ def _to_canonical_shape(arr: np.ndarray, dims: tuple) -> np.ndarray:
 
 
 def _load_lif_array(file_path: str, image_id: int, m: int) -> np.ndarray:
+    # Re-opening per call is intentional: profiling shows LifFile lifecycle
+    # is ~3% of wall time vs ~4% for asarray. Caching handles would also
+    # need per-thread state (LifFile is not thread-safe) for marginal gain.
     with liffile.LifFile(file_path, squeeze=False) as lf:
         lif_image = lf.images[image_id]
-        arr = lif_image.asarray()
         dims = list(lif_image.dims)
         if "M" in dims:
-            arr = np.take(arr, m, axis=dims.index("M"))
+            # frames-API output order: iterated dims (original order) +
+            # fixed dims + frame dims (Y, X, optional S). M is the only
+            # fixed dim here, so its singleton axis sits just before the
+            # frame dims.
+            arr = lif_image.frames(M=m).asarray()
+            frame_dim_count = sum(1 for d in dims if d in ("Y", "X", "S"))
+            arr = np.squeeze(arr, axis=arr.ndim - frame_dim_count - 1)
             dims.remove("M")
+        else:
+            arr = lif_image.asarray()
     return _to_canonical_shape(arr, tuple(dims))
 
 
 def _peek_lif_dtype(file_path: str, image_id: int, m: int) -> str:
     with liffile.LifFile(file_path, squeeze=False) as lf:
-        return str(lf.images[image_id].asarray().dtype)
+        return str(lf.images[image_id].dtype)
 
 
 class LifMosaicLoader(ImageLoaderInterface):
