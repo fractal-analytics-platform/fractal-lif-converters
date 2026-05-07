@@ -124,6 +124,17 @@
                 },
                 "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
+              },
+              "runtime_settings": {
+                "$ref": "#/$defs/RuntimeSettings",
+                "default": {
+                  "use_zarrs_codec": false,
+                  "dask_scheduler": {
+                    "type": "Default"
+                  }
+                },
+                "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
+                "title": "Runtime Settings"
               }
             },
             "title": "ConverterOptions",
@@ -164,6 +175,21 @@
             ],
             "title": "DefaultColors",
             "type": "string"
+          },
+          "DefaultScheduler": {
+            "additionalProperties": false,
+            "description": "Do not set a Dask scheduler; leave it up to the caller.",
+            "properties": {
+              "type": {
+                "const": "Default",
+                "default": "Default",
+                "description": "The dask scheduler will not be modified when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "DefaultScheduler",
+            "type": "object"
           },
           "FixedSizeChunking": {
             "description": "Chunking strategy with fixed chunk sizes.",
@@ -530,6 +556,28 @@
             "title": "PixelSizeModel",
             "type": "object"
           },
+          "ProcessScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's multiprocessing scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Processes",
+                "default": "Processes",
+                "description": "The dask scheduler will be set to \"processes\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker processes to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Processes",
+                "type": "integer"
+              }
+            },
+            "title": "ProcessScheduler",
+            "type": "object"
+          },
           "RegexExcludeFilter": {
             "description": "Regex exclude filter model.",
             "properties": {
@@ -572,6 +620,50 @@
               "regex"
             ],
             "title": "RegexIncludeFilter",
+            "type": "object"
+          },
+          "RuntimeSettings": {
+            "additionalProperties": false,
+            "description": "Runtime knobs applied during conversion via a scoped context manager.",
+            "properties": {
+              "use_zarrs_codec": {
+                "default": false,
+                "description": "Use the `zarrs.ZarrsCodecPipeline` Rust codec backend.\n\nRequires the optional `zarrs` dependency.",
+                "title": "Use Zarrs Codec Pipeline",
+                "type": "boolean"
+              },
+              "dask_scheduler": {
+                "default": {
+                  "type": "Default"
+                },
+                "description": "Dask scheduler to set via `dask.config.set` for the conversion call.\nIf set to `DefaultScheduler`, the scheduler will not be modified.",
+                "discriminator": {
+                  "mapping": {
+                    "Default": "#/$defs/DefaultScheduler",
+                    "Processes": "#/$defs/ProcessScheduler",
+                    "Synchronous": "#/$defs/SynchronousScheduler",
+                    "Threads": "#/$defs/ThreadScheduler"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ThreadScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/ProcessScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/SynchronousScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/DefaultScheduler"
+                  }
+                ],
+                "title": "Dask Scheduler"
+              }
+            },
+            "title": "RuntimeSettings",
             "type": "object"
           },
           "Scalings": {
@@ -638,6 +730,21 @@
             "title": "StagePositionCorrections",
             "type": "object"
           },
+          "SynchronousScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's synchronous scheduler (no parallelism).",
+            "properties": {
+              "type": {
+                "const": "Synchronous",
+                "default": "Synchronous",
+                "description": "The dask scheduler will be set to \"synchronous\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "SynchronousScheduler",
+            "type": "object"
+          },
           "TempJsonOptions": {
             "description": "Options for temporary JSON storage during conversion.",
             "properties": {
@@ -649,6 +756,28 @@
               }
             },
             "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "ThreadScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's threaded scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Threads",
+                "default": "Threads",
+                "description": "The dask scheduler will be set to \"threads\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker threads to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Threads",
+                "type": "integer"
+              }
+            },
+            "title": "ThreadScheduler",
             "type": "object"
           },
           "TilingMode": {
@@ -766,6 +895,12 @@
               },
               "temp_json_options": {
                 "temp_url": "{zarr_dir}/_tmp_json"
+              },
+              "runtime_settings": {
+                "dask_scheduler": {
+                  "type": "Default"
+                },
+                "use_zarrs_codec": false
               }
             },
             "title": "Converter Options",
@@ -878,9 +1013,35 @@
                 },
                 "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
+              },
+              "runtime_settings": {
+                "$ref": "#/$defs/RuntimeSettings",
+                "default": {
+                  "use_zarrs_codec": false,
+                  "dask_scheduler": {
+                    "type": "Default"
+                  }
+                },
+                "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
+                "title": "Runtime Settings"
               }
             },
             "title": "ConverterOptions",
+            "type": "object"
+          },
+          "DefaultScheduler": {
+            "additionalProperties": false,
+            "description": "Do not set a Dask scheduler; leave it up to the caller.",
+            "properties": {
+              "type": {
+                "const": "Default",
+                "default": "Default",
+                "description": "The dask scheduler will not be modified when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "DefaultScheduler",
             "type": "object"
           },
           "FixedSizeChunking": {
@@ -1033,6 +1194,72 @@
             "type": "string",
             "description": "Missing description for OverwriteMode."
           },
+          "ProcessScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's multiprocessing scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Processes",
+                "default": "Processes",
+                "description": "The dask scheduler will be set to \"processes\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker processes to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Processes",
+                "type": "integer"
+              }
+            },
+            "title": "ProcessScheduler",
+            "type": "object"
+          },
+          "RuntimeSettings": {
+            "additionalProperties": false,
+            "description": "Runtime knobs applied during conversion via a scoped context manager.",
+            "properties": {
+              "use_zarrs_codec": {
+                "default": false,
+                "description": "Use the `zarrs.ZarrsCodecPipeline` Rust codec backend.\n\nRequires the optional `zarrs` dependency.",
+                "title": "Use Zarrs Codec Pipeline",
+                "type": "boolean"
+              },
+              "dask_scheduler": {
+                "default": {
+                  "type": "Default"
+                },
+                "description": "Dask scheduler to set via `dask.config.set` for the conversion call.\nIf set to `DefaultScheduler`, the scheduler will not be modified.",
+                "discriminator": {
+                  "mapping": {
+                    "Default": "#/$defs/DefaultScheduler",
+                    "Processes": "#/$defs/ProcessScheduler",
+                    "Synchronous": "#/$defs/SynchronousScheduler",
+                    "Threads": "#/$defs/ThreadScheduler"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ThreadScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/ProcessScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/SynchronousScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/DefaultScheduler"
+                  }
+                ],
+                "title": "Dask Scheduler"
+              }
+            },
+            "title": "RuntimeSettings",
+            "type": "object"
+          },
           "Scalings": {
             "enum": [
               "0.25",
@@ -1071,6 +1298,21 @@
             "title": "StagePositionCorrections",
             "type": "object"
           },
+          "SynchronousScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's synchronous scheduler (no parallelism).",
+            "properties": {
+              "type": {
+                "const": "Synchronous",
+                "default": "Synchronous",
+                "description": "The dask scheduler will be set to \"synchronous\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "SynchronousScheduler",
+            "type": "object"
+          },
           "TempJsonOptions": {
             "description": "Options for temporary JSON storage during conversion.",
             "properties": {
@@ -1082,6 +1324,28 @@
               }
             },
             "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "ThreadScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's threaded scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Threads",
+                "default": "Threads",
+                "description": "The dask scheduler will be set to \"threads\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker threads to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Threads",
+                "type": "integer"
+              }
+            },
+            "title": "ThreadScheduler",
             "type": "object"
           },
           "TilingMode": {
@@ -1253,6 +1517,17 @@
                 },
                 "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
+              },
+              "runtime_settings": {
+                "$ref": "#/$defs/RuntimeSettings",
+                "default": {
+                  "use_zarrs_codec": false,
+                  "dask_scheduler": {
+                    "type": "Default"
+                  }
+                },
+                "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
+                "title": "Runtime Settings"
               }
             },
             "title": "ConverterOptions",
@@ -1293,6 +1568,21 @@
             ],
             "title": "DefaultColors",
             "type": "string"
+          },
+          "DefaultScheduler": {
+            "additionalProperties": false,
+            "description": "Do not set a Dask scheduler; leave it up to the caller.",
+            "properties": {
+              "type": {
+                "const": "Default",
+                "default": "Default",
+                "description": "The dask scheduler will not be modified when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "DefaultScheduler",
+            "type": "object"
           },
           "FixedSizeChunking": {
             "description": "Chunking strategy with fixed chunk sizes.",
@@ -1672,6 +1962,28 @@
             "title": "PixelSizeModel",
             "type": "object"
           },
+          "ProcessScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's multiprocessing scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Processes",
+                "default": "Processes",
+                "description": "The dask scheduler will be set to \"processes\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker processes to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Processes",
+                "type": "integer"
+              }
+            },
+            "title": "ProcessScheduler",
+            "type": "object"
+          },
           "RegexExcludeFilter": {
             "description": "Regex exclude filter model.",
             "properties": {
@@ -1714,6 +2026,50 @@
               "regex"
             ],
             "title": "RegexIncludeFilter",
+            "type": "object"
+          },
+          "RuntimeSettings": {
+            "additionalProperties": false,
+            "description": "Runtime knobs applied during conversion via a scoped context manager.",
+            "properties": {
+              "use_zarrs_codec": {
+                "default": false,
+                "description": "Use the `zarrs.ZarrsCodecPipeline` Rust codec backend.\n\nRequires the optional `zarrs` dependency.",
+                "title": "Use Zarrs Codec Pipeline",
+                "type": "boolean"
+              },
+              "dask_scheduler": {
+                "default": {
+                  "type": "Default"
+                },
+                "description": "Dask scheduler to set via `dask.config.set` for the conversion call.\nIf set to `DefaultScheduler`, the scheduler will not be modified.",
+                "discriminator": {
+                  "mapping": {
+                    "Default": "#/$defs/DefaultScheduler",
+                    "Processes": "#/$defs/ProcessScheduler",
+                    "Synchronous": "#/$defs/SynchronousScheduler",
+                    "Threads": "#/$defs/ThreadScheduler"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ThreadScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/ProcessScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/SynchronousScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/DefaultScheduler"
+                  }
+                ],
+                "title": "Dask Scheduler"
+              }
+            },
+            "title": "RuntimeSettings",
             "type": "object"
           },
           "Scalings": {
@@ -1780,6 +2136,21 @@
             "title": "StagePositionCorrections",
             "type": "object"
           },
+          "SynchronousScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's synchronous scheduler (no parallelism).",
+            "properties": {
+              "type": {
+                "const": "Synchronous",
+                "default": "Synchronous",
+                "description": "The dask scheduler will be set to \"synchronous\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "SynchronousScheduler",
+            "type": "object"
+          },
           "TempJsonOptions": {
             "description": "Options for temporary JSON storage during conversion.",
             "properties": {
@@ -1791,6 +2162,28 @@
               }
             },
             "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "ThreadScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's threaded scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Threads",
+                "default": "Threads",
+                "description": "The dask scheduler will be set to \"threads\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker threads to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Threads",
+                "type": "integer"
+              }
+            },
+            "title": "ThreadScheduler",
             "type": "object"
           },
           "TilingMode": {
@@ -1908,6 +2301,12 @@
               },
               "temp_json_options": {
                 "temp_url": "{zarr_dir}/_tmp_json"
+              },
+              "runtime_settings": {
+                "dask_scheduler": {
+                  "type": "Default"
+                },
+                "use_zarrs_codec": false
               }
             },
             "title": "Converter Options",
@@ -2020,9 +2419,35 @@
                 },
                 "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
+              },
+              "runtime_settings": {
+                "$ref": "#/$defs/RuntimeSettings",
+                "default": {
+                  "use_zarrs_codec": false,
+                  "dask_scheduler": {
+                    "type": "Default"
+                  }
+                },
+                "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
+                "title": "Runtime Settings"
               }
             },
             "title": "ConverterOptions",
+            "type": "object"
+          },
+          "DefaultScheduler": {
+            "additionalProperties": false,
+            "description": "Do not set a Dask scheduler; leave it up to the caller.",
+            "properties": {
+              "type": {
+                "const": "Default",
+                "default": "Default",
+                "description": "The dask scheduler will not be modified when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "DefaultScheduler",
             "type": "object"
           },
           "FixedSizeChunking": {
@@ -2175,6 +2600,72 @@
             "type": "string",
             "description": "Missing description for OverwriteMode."
           },
+          "ProcessScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's multiprocessing scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Processes",
+                "default": "Processes",
+                "description": "The dask scheduler will be set to \"processes\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker processes to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Processes",
+                "type": "integer"
+              }
+            },
+            "title": "ProcessScheduler",
+            "type": "object"
+          },
+          "RuntimeSettings": {
+            "additionalProperties": false,
+            "description": "Runtime knobs applied during conversion via a scoped context manager.",
+            "properties": {
+              "use_zarrs_codec": {
+                "default": false,
+                "description": "Use the `zarrs.ZarrsCodecPipeline` Rust codec backend.\n\nRequires the optional `zarrs` dependency.",
+                "title": "Use Zarrs Codec Pipeline",
+                "type": "boolean"
+              },
+              "dask_scheduler": {
+                "default": {
+                  "type": "Default"
+                },
+                "description": "Dask scheduler to set via `dask.config.set` for the conversion call.\nIf set to `DefaultScheduler`, the scheduler will not be modified.",
+                "discriminator": {
+                  "mapping": {
+                    "Default": "#/$defs/DefaultScheduler",
+                    "Processes": "#/$defs/ProcessScheduler",
+                    "Synchronous": "#/$defs/SynchronousScheduler",
+                    "Threads": "#/$defs/ThreadScheduler"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ThreadScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/ProcessScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/SynchronousScheduler"
+                  },
+                  {
+                    "$ref": "#/$defs/DefaultScheduler"
+                  }
+                ],
+                "title": "Dask Scheduler"
+              }
+            },
+            "title": "RuntimeSettings",
+            "type": "object"
+          },
           "Scalings": {
             "enum": [
               "0.25",
@@ -2213,6 +2704,21 @@
             "title": "StagePositionCorrections",
             "type": "object"
           },
+          "SynchronousScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's synchronous scheduler (no parallelism).",
+            "properties": {
+              "type": {
+                "const": "Synchronous",
+                "default": "Synchronous",
+                "description": "The dask scheduler will be set to \"synchronous\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              }
+            },
+            "title": "SynchronousScheduler",
+            "type": "object"
+          },
           "TempJsonOptions": {
             "description": "Options for temporary JSON storage during conversion.",
             "properties": {
@@ -2224,6 +2730,28 @@
               }
             },
             "title": "TempJsonOptions",
+            "type": "object"
+          },
+          "ThreadScheduler": {
+            "additionalProperties": false,
+            "description": "Use Dask's threaded scheduler for parallelism.",
+            "properties": {
+              "type": {
+                "const": "Threads",
+                "default": "Threads",
+                "description": "The dask scheduler will be set to \"threads\" when this scheduler is selected.",
+                "title": "Type",
+                "type": "string"
+              },
+              "num_workers": {
+                "default": 8,
+                "description": "Number of worker threads to use. Must be at least 1.",
+                "minimum": 1,
+                "title": "Number of Threads",
+                "type": "integer"
+              }
+            },
+            "title": "ThreadScheduler",
             "type": "object"
           },
           "TilingMode": {
