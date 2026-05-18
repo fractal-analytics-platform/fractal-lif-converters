@@ -1,6 +1,6 @@
 import pytest
 
-from fractal_lif_converters.lif.string_validation import (
+from fractal_lif_converters.common.string_validation import (
     validate_position_name_type1,
     validate_position_name_type2,
     validate_well_name_type1,

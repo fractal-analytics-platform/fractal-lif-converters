@@ -15,7 +15,7 @@ from ome_zarr_converters_tools import (
 )
 from pydantic import validate_call
 
-from fractal_lif_converters.lif.loaders import LifSingleLoader
+from fractal_lif_converters.common.loaders import LifMosaicLoader
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def single_image_compute_task(
         zarr_url=zarr_url,
         init_args=init_args,
         collection_type=SingleImage,
-        image_loader_type=LifSingleLoader,
+        image_loader_type=LifMosaicLoader,
     )
     zarr_output = img_list_update["image_list_updates"][0]["zarr_url"]
     run_time = time.time() - timer

@@ -6,9 +6,9 @@ Produces flat ``list[Tile]`` per acquisition; downstream
 
 from collections.abc import Callable
 from enum import Enum
-from functools import cache
 from typing import Any
 
+import liffile
 from ome_zarr_converters_tools import (
     AcquisitionDetails,
     ImageInPlate,
@@ -16,10 +16,8 @@ from ome_zarr_converters_tools import (
     Tile,
 )
 from pydantic import BaseModel
-from readlif.reader import LifFile
-from readlif.utilities import get_xml
 
-from fractal_lif_converters.lif.loaders import LifMosaicLoader, LifSingleLoader
+from fractal_lif_converters.common.loaders import LifMosaicLoader
 
 
 class ImageType(Enum):
@@ -33,9 +31,10 @@ class ImageType(Enum):
     MOSAIC = "mosaic"
 
     @classmethod
-    def from_metadata(cls, metadata: dict) -> "ImageType":
-        """Get image type from a LIF metadata dict."""
-        if "mosaic_position" in metadata and len(metadata["mosaic_position"]) > 0:
+    def from_lif_image(cls, lif_image: Any) -> "ImageType":
+        """Get image type from a liffile LifImage."""
+        ts = lif_image.tilescan
+        if ts is not None and len(ts.tiles) > 1:
             return cls.MOSAIC
         return cls.SINGLE
 
@@ -62,109 +61,42 @@ class _ImageInfo(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# XML helpers — recover stage position metadata for non-mosaic LIF images.
-# ---------------------------------------------------------------------------
-
-
-@cache
-def _get_xml(path: str):
-    return get_xml(path)[0]
-
-
-@cache
-def _inner_find_nested_element(xml_elem, name):
-    found = None
-    # Iter('Element') includes the current node when it matches; skip it
-    # so we only descend into children.
-    for elem in xml_elem.iter("Element"):
-        if elem is xml_elem:
-            continue
-        if elem.attrib.get("Name") == name:
-            found = elem
-            break
-    return found
-
-
-def _find_nested_element(xml_path: str, name: str):
-    """Walk the LIF XML tree to find an <Element> by its hierarchical name."""
-    current_node = _get_xml(xml_path)
-    for part in name.split("/"):
-        found = _inner_find_nested_element(current_node, part)
-        if found is None:
-            return None
-        current_node = found
-    return current_node
-
-
-@cache
-def _remove_nested_elements(element):
-    for child in list(element):
-        if child.tag == "Element":
-            element.remove(child)
-        else:
-            _remove_nested_elements(child)
-    return element
-
-
-def _find_tile_infos(path: str, name: str) -> dict[str, str]:
-    """Find the tile metadata for a single-position image."""
-    element = _find_nested_element(path, name)
-    if element is None:
-        raise ValueError(f"Could not find the position metadata for {name}")
-    element = _remove_nested_elements(element)
-    tiles: list[dict] = []
-    for child in element.iter():
-        if child.tag == "Tile":
-            tiles.append(dict(child.attrib))
-
-    if len(tiles) == 0:
-        raise ValueError(f"Could not find the position metadata for {name}")
-
-    if len(tiles) > 1:
-        raise ValueError(
-            f"Found multiple tiles position for {name}. "
-            "But the image is not a mosaic. This case is not supported."
-        )
-    return tiles[0]
-
-
-# ---------------------------------------------------------------------------
 # Tile constructors
 # ---------------------------------------------------------------------------
 
 
-def _resolve_scale_m(lif_image: Any, scale_m: float | None) -> float:
-    if scale_m is not None:
-        return scale_m
-    return lif_image.scale_n.get(10, 1e-6)
+def _resolve_scale_m(scale_m: float | None) -> float:
+    return scale_m if scale_m is not None else 1e-6
 
 
 def _shape_5d(lif_image: Any) -> tuple[int, int, int, int, int]:
-    shape_x = lif_image.dims_n.get(1, 1)
-    shape_y = lif_image.dims_n.get(2, 1)
-    shape_z = lif_image.dims_n.get(3, 1)
-    shape_t = lif_image.dims_n.get(4, 1)
-    shape_c = lif_image.channels
+    sizes = lif_image.sizes
+    shape_x = sizes.get("X", 1)
+    shape_y = sizes.get("Y", 1)
+    shape_z = sizes.get("Z", 1)
+    shape_t = sizes.get("T", 1)
+    shape_c = sizes.get("C", 1)
     return shape_t, shape_c, shape_z, shape_y, shape_x
 
 
 def _build_mosaic_tiles(
     *,
     lif_image: Any,
+    lif_file: Any,
     image_id: int,
     collection: ImageInPlate | SingleImage,
     acquisition_details: AcquisitionDetails,
     scale_m: float | None,
 ) -> list[Tile]:
     shape_t, shape_c, shape_z, shape_y, shape_x = _shape_5d(lif_image)
-    scale = _resolve_scale_m(lif_image, scale_m)
+    scale = _resolve_scale_m(scale_m)
 
     tiles: list[Tile] = []
-    for m, pos in enumerate(lif_image.mosaic_position):
-        x_um = pos[2] / scale
-        y_um = pos[3] / scale
+    for m, tile_pos in enumerate(lif_image.tilescan.tiles):
+        x_um = tile_pos["pos_x"] / scale
+        y_um = tile_pos["pos_y"] / scale
         loader = LifMosaicLoader(
-            file_path=lif_image.filename,
+            file_path=str(lif_file.filepath),
             image_id=image_id,
             m=m,
         )
@@ -193,6 +125,7 @@ def _build_mosaic_tiles(
 def _build_single_tile(
     *,
     lif_image: Any,
+    lif_file: Any,
     image_id: int,
     fov_name: str,
     collection: ImageInPlate | SingleImage,
@@ -200,15 +133,20 @@ def _build_single_tile(
     scale_m: float | None,
 ) -> Tile:
     shape_t, shape_c, shape_z, shape_y, shape_x = _shape_5d(lif_image)
-    scale = _resolve_scale_m(lif_image, scale_m)
+    scale = _resolve_scale_m(scale_m)
 
-    tile_info = _find_tile_infos(lif_image.filename, lif_image.name)
-    x_um = float(tile_info.get("PosX", 0)) / scale
-    y_um = float(tile_info.get("PosY", 0)) / scale
+    ts = lif_image.tilescan
+    if ts is not None and len(ts.tiles) > 0:
+        tile_pos = ts.tiles[0]
+        x_um = tile_pos["pos_x"] / scale
+        y_um = tile_pos["pos_y"] / scale
+    else:
+        x_um, y_um = 0.0, 0.0
 
-    loader = LifSingleLoader(
-        file_path=lif_image.filename,
+    loader = LifMosaicLoader(
+        file_path=str(lif_file.filepath),
         image_id=image_id,
+        m=0,
     )
     return Tile(
         fov_name=fov_name,
@@ -241,7 +179,7 @@ def _single_fov_name(
 
 def build_plate_acq_tiles(
     *,
-    lif_file: LifFile,
+    lif_file: liffile.LifFile,
     image_infos: list[_ImageInPlateInfo],
     plate_name: str,
     acquisition_id: int,
@@ -261,7 +199,7 @@ def build_plate_acq_tiles(
             for a given ``LifImage``. The factory is responsible for
             channel/pixelsize/data-type metadata.
         scale_m: Override for the LIF metres-per-micrometre scale; falls back
-            to ``lif_image.scale_n.get(10, 1e-6)`` per image when ``None``.
+            to ``1e-6`` (metres per micrometre) when ``None``.
 
     Returns:
         Flat list of tiles for this group.
@@ -277,7 +215,7 @@ def build_plate_acq_tiles(
                 "Multi-mosaic is not supported."
             )
         info = image_infos[0]
-        lif_image = lif_file.get_image(info.image_id)
+        lif_image = lif_file.images[info.image_id]
         collection = ImageInPlate(
             plate_name=plate_name,
             row=info.row,
@@ -286,6 +224,7 @@ def build_plate_acq_tiles(
         )
         return _build_mosaic_tiles(
             lif_image=lif_image,
+            lif_file=lif_file,
             image_id=info.image_id,
             collection=collection,
             acquisition_details=acquisition_details_factory(lif_image),
@@ -295,7 +234,7 @@ def build_plate_acq_tiles(
     multi = len(image_infos) > 1
     tiles: list[Tile] = []
     for idx, info in enumerate(image_infos):
-        lif_image = lif_file.get_image(info.image_id)
+        lif_image = lif_file.images[info.image_id]
         collection = ImageInPlate(
             plate_name=plate_name,
             row=info.row,
@@ -305,6 +244,7 @@ def build_plate_acq_tiles(
         tiles.append(
             _build_single_tile(
                 lif_image=lif_image,
+                lif_file=lif_file,
                 image_id=info.image_id,
                 fov_name=_single_fov_name(info, idx, multi=multi),
                 collection=collection,
@@ -317,7 +257,7 @@ def build_plate_acq_tiles(
 
 def build_single_acq_tiles(
     *,
-    lif_file: LifFile,
+    lif_file: liffile.LifFile,
     image_infos: list[_ImageInfo],
     image_path: str,
     acquisition_details_factory: Callable[[Any], AcquisitionDetails],
@@ -334,7 +274,7 @@ def build_single_acq_tiles(
         acquisition_details_factory: Callable producing ``AcquisitionDetails``
             for a given ``LifImage``.
         scale_m: Override for the LIF metres-per-micrometre scale; falls back
-            to ``lif_image.scale_n.get(10, 1e-6)`` per image when ``None``.
+            to ``1e-6`` (metres per micrometre) when ``None``.
 
     Returns:
         Flat list of tiles for this group.
@@ -351,9 +291,10 @@ def build_single_acq_tiles(
                 "Multi-mosaic is not supported."
             )
         info = image_infos[0]
-        lif_image = lif_file.get_image(info.image_id)
+        lif_image = lif_file.images[info.image_id]
         return _build_mosaic_tiles(
             lif_image=lif_image,
+            lif_file=lif_file,
             image_id=info.image_id,
             collection=collection,
             acquisition_details=acquisition_details_factory(lif_image),
@@ -363,10 +304,11 @@ def build_single_acq_tiles(
     multi = len(image_infos) > 1
     tiles: list[Tile] = []
     for idx, info in enumerate(image_infos):
-        lif_image = lif_file.get_image(info.image_id)
+        lif_image = lif_file.images[info.image_id]
         tiles.append(
             _build_single_tile(
                 lif_image=lif_image,
+                lif_file=lif_file,
                 image_id=info.image_id,
                 fov_name=_single_fov_name(info, idx, multi=multi),
                 collection=collection,

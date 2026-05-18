@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from fractal_lif_converters.common import single_image_compute_task
-from fractal_lif_converters.lif.single.convert_lif_single_acq_init_task import (
+from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
     convert_lif_single_acq_init_task,
 )
 
