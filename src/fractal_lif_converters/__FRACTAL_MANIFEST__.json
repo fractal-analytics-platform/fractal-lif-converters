@@ -23,6 +23,26 @@
       },
       "args_schema_non_parallel": {
         "$defs": {
+          "AutoTiling": {
+            "properties": {
+              "mode": {
+                "const": "Auto",
+                "default": "Auto",
+                "description": "Automatically determine if Snap to Grid is possible, otherwise use Snap to Corners.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "AutoTiling",
+            "type": "object",
+            "description": "Missing description for AutoTiling."
+          },
           "BackendType": {
             "enum": [
               "anndata",
@@ -34,7 +54,7 @@
             "type": "string",
             "description": "Missing description for BackendType."
           },
-          "ChannelInfo": {
+          "ChannelInfoUI": {
             "description": "Channel information.",
             "properties": {
               "channel_label": {
@@ -55,17 +75,17 @@
                 "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
                 "title": "Wavelength Id"
               },
-              "colors": {
-                "$ref": "#/$defs/DefaultColors",
-                "default": "Blue (0000FF)",
+              "color": {
+                "$ref": "#/$defs/DefaultColor",
+                "default": "Blue (#0000FF)",
                 "description": "The color associated with the channel, e.g. for visualization purposes.",
-                "title": "Colors"
+                "title": "Color"
               }
             },
             "required": [
               "channel_label"
             ],
-            "title": "ChannelInfo",
+            "title": "ChannelInfoUI",
             "type": "object"
           },
           "ConverterOptions": {
@@ -78,28 +98,49 @@
                 "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
-              "tiling_mode": {
-                "$ref": "#/$defs/TilingMode",
-                "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
-                "title": "Tiling Mode"
+              "tiling_strategy": {
+                "default": {
+                  "mode": "Auto",
+                  "tolerance": 0.0
+                },
+                "description": "Tiling strategy to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners. Accepts an optional tolerance (in pixels) for grid alignment.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap). Accepts an optional\n  tolerance (in pixels).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "discriminator": {
+                  "mapping": {
+                    "Auto": "#/$defs/AutoTiling",
+                    "Inplace": "#/$defs/InplaceTiling",
+                    "No Tiling": "#/$defs/NoTiling",
+                    "Snap to Corners": "#/$defs/SnapToCornersTiling",
+                    "Snap to Grid": "#/$defs/SnapToGridTiling"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/AutoTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToGridTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToCornersTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/InplaceTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/NoTiling"
+                  }
+                ],
+                "title": "Tiling Strategy"
               },
-              "tiling_tolerance": {
-                "default": 0,
-                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
-                "minimum": 0,
-                "title": "Tiling Tolerance (in pixels)",
-                "type": "number"
-              },
-              "alignment_correction": {
+              "stage_position_corrections": {
                 "$ref": "#/$defs/StagePositionCorrections",
                 "default": {
                   "align_xy": false,
                   "align_z": false,
                   "align_t": false
                 },
-                "description": "Alignment correction options.",
-                "title": "Alignment Corrections"
+                "title": "Stage Position Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
@@ -117,20 +158,15 @@
                 },
                 "title": "OME-Zarr Options"
               },
-              "temp_json_options": {
-                "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
-                "title": "Temporary JSON Options"
-              },
               "runtime_settings": {
                 "$ref": "#/$defs/RuntimeSettings",
                 "default": {
                   "use_zarrs_codec": false,
                   "dask_scheduler": {
                     "type": "Default"
+                  },
+                  "temp_json_options": {
+                    "temp_url": "{zarr_dir}/_tmp_json"
                   }
                 },
                 "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
@@ -151,30 +187,30 @@
             "title": "DataTypeEnum",
             "type": "string"
           },
-          "DefaultColors": {
-            "description": "Default colors for the channels.",
+          "DefaultColor": {
             "enum": [
-              "Blue (0000FF)",
-              "Red (FF0000)",
-              "Yellow (FFFF00)",
-              "Magenta (FF00FF)",
-              "Cyan (00FFFF)",
-              "Gray (808080)",
-              "Green (00FF00)",
-              "Orange (FF8000)",
-              "Purple (8000FF)",
-              "Teal (008080)",
-              "Lime (00FF80)",
-              "Amber (FFBF00)",
-              "Pink (FF0080)",
-              "Navy (000080)",
-              "Maroon (800000)",
-              "Olive (808000)",
-              "Coral (FF7F50)",
-              "Violet (8000FF)"
+              "Blue (#0000FF)",
+              "Red (#FF0000)",
+              "Yellow (#FFFF00)",
+              "Magenta (#FF00FF)",
+              "Cyan (#00FFFF)",
+              "Gray (#808080)",
+              "Green (#00FF00)",
+              "Orange (#FF8000)",
+              "Purple (#8000FF)",
+              "Teal (#008080)",
+              "Lime (#00FF80)",
+              "Amber (#FFBF00)",
+              "Pink (#FF0080)",
+              "Navy (#000080)",
+              "Maroon (#800000)",
+              "Olive (#808000)",
+              "Coral (#FF7F50)",
+              "Violet (#EE82EE)"
             ],
-            "title": "DefaultColors",
-            "type": "string"
+            "title": "DefaultColor",
+            "type": "string",
+            "description": "Missing description for DefaultColor."
           },
           "DefaultScheduler": {
             "additionalProperties": false,
@@ -274,6 +310,20 @@
             "title": "FovBasedChunking",
             "type": "object"
           },
+          "InplaceTiling": {
+            "properties": {
+              "mode": {
+                "const": "Inplace",
+                "default": "Inplace",
+                "description": "Write tiles in their original stage positions.\nThis may lead to artifacts if microscope stage positions are not precise,\nwhen tiles overlap the last written tile will overwrite previous tiles in the\noverlapping region.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "InplaceTiling",
+            "type": "object",
+            "description": "Missing description for InplaceTiling."
+          },
           "LifAcquisitionOptions": {
             "description": "Acquisition options specific to LIF conversion.",
             "properties": {
@@ -281,7 +331,7 @@
                 "anyOf": [
                   {
                     "items": {
-                      "$ref": "#/$defs/ChannelInfo"
+                      "$ref": "#/$defs/ChannelInfoUI"
                     },
                     "type": "array"
                   },
@@ -338,14 +388,14 @@
                 "description": "Data type of the image data.",
                 "title": "Data Type"
               },
-              "stage_corrections": {
+              "stage_orientation": {
                 "$ref": "#/$defs/StageOrientation",
                 "default": {
                   "flip_x": false,
                   "flip_y": false,
                   "swap_xy": false
                 },
-                "title": "Stage Corrections"
+                "title": "Stage Orientation"
               },
               "filters": {
                 "default": [],
@@ -431,7 +481,7 @@
                   "condition_table_path": null,
                   "axes": null,
                   "data_type": "autodetect",
-                  "stage_corrections": {
+                  "stage_orientation": {
                     "flip_x": false,
                     "flip_y": false,
                     "swap_xy": false
@@ -461,6 +511,20 @@
             ],
             "title": "LifPlateAcquisitionModel",
             "type": "object"
+          },
+          "NoTiling": {
+            "properties": {
+              "mode": {
+                "const": "No Tiling",
+                "default": "No Tiling",
+                "description": "Each field of view is written as a single OME-Zarr.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "NoTiling",
+            "type": "object",
+            "description": "Missing description for NoTiling."
           },
           "OmeZarrOptions": {
             "additionalProperties": false,
@@ -661,6 +725,14 @@
                   }
                 ],
                 "title": "Dask Scheduler"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
               }
             },
             "title": "RuntimeSettings",
@@ -677,6 +749,40 @@
             "title": "Scalings",
             "type": "string",
             "description": "Missing description for Scalings."
+          },
+          "SnapToCornersTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Corners",
+                "default": "Snap to Corners",
+                "description": "Tile images to fit a grid defined by the corner positions.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "SnapToCornersTiling",
+            "type": "object",
+            "description": "Missing description for SnapToCornersTiling."
+          },
+          "SnapToGridTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Grid",
+                "default": "Snap to Grid",
+                "description": "Tile images to fit a regular grid. This is only possible if image positions align\nto a grid (potentially with overlap).",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "SnapToGridTiling",
+            "type": "object",
+            "description": "Missing description for SnapToGridTiling."
           },
           "StageOrientation": {
             "additionalProperties": false,
@@ -706,7 +812,7 @@
           },
           "StagePositionCorrections": {
             "additionalProperties": false,
-            "description": "Alignment correction for stage positions.",
+            "description": "Stage position correction options.",
             "properties": {
               "align_xy": {
                 "default": false,
@@ -779,18 +885,6 @@
             },
             "title": "ThreadScheduler",
             "type": "object"
-          },
-          "TilingMode": {
-            "enum": [
-              "Auto",
-              "Snap to Grid",
-              "Snap to Corners",
-              "Inplace",
-              "No Tiling"
-            ],
-            "title": "TilingMode",
-            "type": "string",
-            "description": "Missing description for TilingMode."
           },
           "WellExcludeFilter": {
             "description": "Well exclude filter model.",
@@ -874,9 +968,11 @@
             "$ref": "#/$defs/ConverterOptions",
             "default": {
               "writer_mode": "By FOV",
-              "tiling_mode": "Auto",
-              "tiling_tolerance": 0.0,
-              "alignment_correction": {
+              "tiling_strategy": {
+                "mode": "Auto",
+                "tolerance": 0.0
+              },
+              "stage_position_corrections": {
                 "align_t": false,
                 "align_xy": false,
                 "align_z": false
@@ -893,12 +989,12 @@
                 "num_levels": 5,
                 "table_backend": "anndata"
               },
-              "temp_json_options": {
-                "temp_url": "{zarr_dir}/_tmp_json"
-              },
               "runtime_settings": {
                 "dask_scheduler": {
                   "type": "Default"
+                },
+                "temp_json_options": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
                 },
                 "use_zarrs_codec": false
               }
@@ -922,6 +1018,26 @@
       },
       "args_schema_parallel": {
         "$defs": {
+          "AutoTiling": {
+            "properties": {
+              "mode": {
+                "const": "Auto",
+                "default": "Auto",
+                "description": "Automatically determine if Snap to Grid is possible, otherwise use Snap to Corners.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "AutoTiling",
+            "type": "object",
+            "description": "Missing description for AutoTiling."
+          },
           "BackendType": {
             "enum": [
               "anndata",
@@ -967,28 +1083,49 @@
                 "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
-              "tiling_mode": {
-                "$ref": "#/$defs/TilingMode",
-                "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
-                "title": "Tiling Mode"
+              "tiling_strategy": {
+                "default": {
+                  "mode": "Auto",
+                  "tolerance": 0.0
+                },
+                "description": "Tiling strategy to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners. Accepts an optional tolerance (in pixels) for grid alignment.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap). Accepts an optional\n  tolerance (in pixels).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "discriminator": {
+                  "mapping": {
+                    "Auto": "#/$defs/AutoTiling",
+                    "Inplace": "#/$defs/InplaceTiling",
+                    "No Tiling": "#/$defs/NoTiling",
+                    "Snap to Corners": "#/$defs/SnapToCornersTiling",
+                    "Snap to Grid": "#/$defs/SnapToGridTiling"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/AutoTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToGridTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToCornersTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/InplaceTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/NoTiling"
+                  }
+                ],
+                "title": "Tiling Strategy"
               },
-              "tiling_tolerance": {
-                "default": 0,
-                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
-                "minimum": 0,
-                "title": "Tiling Tolerance (in pixels)",
-                "type": "number"
-              },
-              "alignment_correction": {
+              "stage_position_corrections": {
                 "$ref": "#/$defs/StagePositionCorrections",
                 "default": {
                   "align_xy": false,
                   "align_z": false,
                   "align_t": false
                 },
-                "description": "Alignment correction options.",
-                "title": "Alignment Corrections"
+                "title": "Stage Position Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
@@ -1006,20 +1143,15 @@
                 },
                 "title": "OME-Zarr Options"
               },
-              "temp_json_options": {
-                "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
-                "title": "Temporary JSON Options"
-              },
               "runtime_settings": {
                 "$ref": "#/$defs/RuntimeSettings",
                 "default": {
                   "use_zarrs_codec": false,
                   "dask_scheduler": {
                     "type": "Default"
+                  },
+                  "temp_json_options": {
+                    "temp_url": "{zarr_dir}/_tmp_json"
                   }
                 },
                 "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
@@ -1126,6 +1258,34 @@
             },
             "title": "FovBasedChunking",
             "type": "object"
+          },
+          "InplaceTiling": {
+            "properties": {
+              "mode": {
+                "const": "Inplace",
+                "default": "Inplace",
+                "description": "Write tiles in their original stage positions.\nThis may lead to artifacts if microscope stage positions are not precise,\nwhen tiles overlap the last written tile will overwrite previous tiles in the\noverlapping region.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "InplaceTiling",
+            "type": "object",
+            "description": "Missing description for InplaceTiling."
+          },
+          "NoTiling": {
+            "properties": {
+              "mode": {
+                "const": "No Tiling",
+                "default": "No Tiling",
+                "description": "Each field of view is written as a single OME-Zarr.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "NoTiling",
+            "type": "object",
+            "description": "Missing description for NoTiling."
           },
           "OmeZarrOptions": {
             "additionalProperties": false,
@@ -1255,6 +1415,14 @@
                   }
                 ],
                 "title": "Dask Scheduler"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
               }
             },
             "title": "RuntimeSettings",
@@ -1272,9 +1440,43 @@
             "type": "string",
             "description": "Missing description for Scalings."
           },
+          "SnapToCornersTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Corners",
+                "default": "Snap to Corners",
+                "description": "Tile images to fit a grid defined by the corner positions.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "SnapToCornersTiling",
+            "type": "object",
+            "description": "Missing description for SnapToCornersTiling."
+          },
+          "SnapToGridTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Grid",
+                "default": "Snap to Grid",
+                "description": "Tile images to fit a regular grid. This is only possible if image positions align\nto a grid (potentially with overlap).",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "SnapToGridTiling",
+            "type": "object",
+            "description": "Missing description for SnapToGridTiling."
+          },
           "StagePositionCorrections": {
             "additionalProperties": false,
-            "description": "Alignment correction for stage positions.",
+            "description": "Stage position correction options.",
             "properties": {
               "align_xy": {
                 "default": false,
@@ -1348,18 +1550,6 @@
             "title": "ThreadScheduler",
             "type": "object"
           },
-          "TilingMode": {
-            "enum": [
-              "Auto",
-              "Snap to Grid",
-              "Snap to Corners",
-              "Inplace",
-              "No Tiling"
-            ],
-            "title": "TilingMode",
-            "type": "string",
-            "description": "Missing description for TilingMode."
-          },
           "WriterMode": {
             "enum": [
               "By Tile",
@@ -1416,6 +1606,26 @@
       },
       "args_schema_non_parallel": {
         "$defs": {
+          "AutoTiling": {
+            "properties": {
+              "mode": {
+                "const": "Auto",
+                "default": "Auto",
+                "description": "Automatically determine if Snap to Grid is possible, otherwise use Snap to Corners.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "AutoTiling",
+            "type": "object",
+            "description": "Missing description for AutoTiling."
+          },
           "BackendType": {
             "enum": [
               "anndata",
@@ -1427,7 +1637,7 @@
             "type": "string",
             "description": "Missing description for BackendType."
           },
-          "ChannelInfo": {
+          "ChannelInfoUI": {
             "description": "Channel information.",
             "properties": {
               "channel_label": {
@@ -1448,17 +1658,17 @@
                 "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
                 "title": "Wavelength Id"
               },
-              "colors": {
-                "$ref": "#/$defs/DefaultColors",
-                "default": "Blue (0000FF)",
+              "color": {
+                "$ref": "#/$defs/DefaultColor",
+                "default": "Blue (#0000FF)",
                 "description": "The color associated with the channel, e.g. for visualization purposes.",
-                "title": "Colors"
+                "title": "Color"
               }
             },
             "required": [
               "channel_label"
             ],
-            "title": "ChannelInfo",
+            "title": "ChannelInfoUI",
             "type": "object"
           },
           "ConverterOptions": {
@@ -1471,28 +1681,49 @@
                 "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
-              "tiling_mode": {
-                "$ref": "#/$defs/TilingMode",
-                "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
-                "title": "Tiling Mode"
+              "tiling_strategy": {
+                "default": {
+                  "mode": "Auto",
+                  "tolerance": 0.0
+                },
+                "description": "Tiling strategy to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners. Accepts an optional tolerance (in pixels) for grid alignment.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap). Accepts an optional\n  tolerance (in pixels).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "discriminator": {
+                  "mapping": {
+                    "Auto": "#/$defs/AutoTiling",
+                    "Inplace": "#/$defs/InplaceTiling",
+                    "No Tiling": "#/$defs/NoTiling",
+                    "Snap to Corners": "#/$defs/SnapToCornersTiling",
+                    "Snap to Grid": "#/$defs/SnapToGridTiling"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/AutoTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToGridTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToCornersTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/InplaceTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/NoTiling"
+                  }
+                ],
+                "title": "Tiling Strategy"
               },
-              "tiling_tolerance": {
-                "default": 0,
-                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
-                "minimum": 0,
-                "title": "Tiling Tolerance (in pixels)",
-                "type": "number"
-              },
-              "alignment_correction": {
+              "stage_position_corrections": {
                 "$ref": "#/$defs/StagePositionCorrections",
                 "default": {
                   "align_xy": false,
                   "align_z": false,
                   "align_t": false
                 },
-                "description": "Alignment correction options.",
-                "title": "Alignment Corrections"
+                "title": "Stage Position Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
@@ -1510,20 +1741,15 @@
                 },
                 "title": "OME-Zarr Options"
               },
-              "temp_json_options": {
-                "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
-                "title": "Temporary JSON Options"
-              },
               "runtime_settings": {
                 "$ref": "#/$defs/RuntimeSettings",
                 "default": {
                   "use_zarrs_codec": false,
                   "dask_scheduler": {
                     "type": "Default"
+                  },
+                  "temp_json_options": {
+                    "temp_url": "{zarr_dir}/_tmp_json"
                   }
                 },
                 "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
@@ -1544,30 +1770,30 @@
             "title": "DataTypeEnum",
             "type": "string"
           },
-          "DefaultColors": {
-            "description": "Default colors for the channels.",
+          "DefaultColor": {
             "enum": [
-              "Blue (0000FF)",
-              "Red (FF0000)",
-              "Yellow (FFFF00)",
-              "Magenta (FF00FF)",
-              "Cyan (00FFFF)",
-              "Gray (808080)",
-              "Green (00FF00)",
-              "Orange (FF8000)",
-              "Purple (8000FF)",
-              "Teal (008080)",
-              "Lime (00FF80)",
-              "Amber (FFBF00)",
-              "Pink (FF0080)",
-              "Navy (000080)",
-              "Maroon (800000)",
-              "Olive (808000)",
-              "Coral (FF7F50)",
-              "Violet (8000FF)"
+              "Blue (#0000FF)",
+              "Red (#FF0000)",
+              "Yellow (#FFFF00)",
+              "Magenta (#FF00FF)",
+              "Cyan (#00FFFF)",
+              "Gray (#808080)",
+              "Green (#00FF00)",
+              "Orange (#FF8000)",
+              "Purple (#8000FF)",
+              "Teal (#008080)",
+              "Lime (#00FF80)",
+              "Amber (#FFBF00)",
+              "Pink (#FF0080)",
+              "Navy (#000080)",
+              "Maroon (#800000)",
+              "Olive (#808000)",
+              "Coral (#FF7F50)",
+              "Violet (#EE82EE)"
             ],
-            "title": "DefaultColors",
-            "type": "string"
+            "title": "DefaultColor",
+            "type": "string",
+            "description": "Missing description for DefaultColor."
           },
           "DefaultScheduler": {
             "additionalProperties": false,
@@ -1667,6 +1893,20 @@
             "title": "FovBasedChunking",
             "type": "object"
           },
+          "InplaceTiling": {
+            "properties": {
+              "mode": {
+                "const": "Inplace",
+                "default": "Inplace",
+                "description": "Write tiles in their original stage positions.\nThis may lead to artifacts if microscope stage positions are not precise,\nwhen tiles overlap the last written tile will overwrite previous tiles in the\noverlapping region.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "InplaceTiling",
+            "type": "object",
+            "description": "Missing description for InplaceTiling."
+          },
           "LifAcquisitionOptions": {
             "description": "Acquisition options specific to LIF conversion.",
             "properties": {
@@ -1674,7 +1914,7 @@
                 "anyOf": [
                   {
                     "items": {
-                      "$ref": "#/$defs/ChannelInfo"
+                      "$ref": "#/$defs/ChannelInfoUI"
                     },
                     "type": "array"
                   },
@@ -1731,14 +1971,14 @@
                 "description": "Data type of the image data.",
                 "title": "Data Type"
               },
-              "stage_corrections": {
+              "stage_orientation": {
                 "$ref": "#/$defs/StageOrientation",
                 "default": {
                   "flip_x": false,
                   "flip_y": false,
                   "swap_xy": false
                 },
-                "title": "Stage Corrections"
+                "title": "Stage Orientation"
               },
               "filters": {
                 "default": [],
@@ -1824,7 +2064,7 @@
                   "condition_table_path": null,
                   "axes": null,
                   "data_type": "autodetect",
-                  "stage_corrections": {
+                  "stage_orientation": {
                     "flip_x": false,
                     "flip_y": false,
                     "swap_xy": false
@@ -1867,6 +2107,20 @@
             ],
             "title": "LifSingleAcqAcquisitionModel",
             "type": "object"
+          },
+          "NoTiling": {
+            "properties": {
+              "mode": {
+                "const": "No Tiling",
+                "default": "No Tiling",
+                "description": "Each field of view is written as a single OME-Zarr.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "NoTiling",
+            "type": "object",
+            "description": "Missing description for NoTiling."
           },
           "OmeZarrOptions": {
             "additionalProperties": false,
@@ -2067,6 +2321,14 @@
                   }
                 ],
                 "title": "Dask Scheduler"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
               }
             },
             "title": "RuntimeSettings",
@@ -2083,6 +2345,40 @@
             "title": "Scalings",
             "type": "string",
             "description": "Missing description for Scalings."
+          },
+          "SnapToCornersTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Corners",
+                "default": "Snap to Corners",
+                "description": "Tile images to fit a grid defined by the corner positions.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "SnapToCornersTiling",
+            "type": "object",
+            "description": "Missing description for SnapToCornersTiling."
+          },
+          "SnapToGridTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Grid",
+                "default": "Snap to Grid",
+                "description": "Tile images to fit a regular grid. This is only possible if image positions align\nto a grid (potentially with overlap).",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "SnapToGridTiling",
+            "type": "object",
+            "description": "Missing description for SnapToGridTiling."
           },
           "StageOrientation": {
             "additionalProperties": false,
@@ -2112,7 +2408,7 @@
           },
           "StagePositionCorrections": {
             "additionalProperties": false,
-            "description": "Alignment correction for stage positions.",
+            "description": "Stage position correction options.",
             "properties": {
               "align_xy": {
                 "default": false,
@@ -2185,18 +2481,6 @@
             },
             "title": "ThreadScheduler",
             "type": "object"
-          },
-          "TilingMode": {
-            "enum": [
-              "Auto",
-              "Snap to Grid",
-              "Snap to Corners",
-              "Inplace",
-              "No Tiling"
-            ],
-            "title": "TilingMode",
-            "type": "string",
-            "description": "Missing description for TilingMode."
           },
           "WellExcludeFilter": {
             "description": "Well exclude filter model.",
@@ -2280,9 +2564,11 @@
             "$ref": "#/$defs/ConverterOptions",
             "default": {
               "writer_mode": "By FOV",
-              "tiling_mode": "Auto",
-              "tiling_tolerance": 0.0,
-              "alignment_correction": {
+              "tiling_strategy": {
+                "mode": "Auto",
+                "tolerance": 0.0
+              },
+              "stage_position_corrections": {
                 "align_t": false,
                 "align_xy": false,
                 "align_z": false
@@ -2299,12 +2585,12 @@
                 "num_levels": 5,
                 "table_backend": "anndata"
               },
-              "temp_json_options": {
-                "temp_url": "{zarr_dir}/_tmp_json"
-              },
               "runtime_settings": {
                 "dask_scheduler": {
                   "type": "Default"
+                },
+                "temp_json_options": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
                 },
                 "use_zarrs_codec": false
               }
@@ -2328,6 +2614,26 @@
       },
       "args_schema_parallel": {
         "$defs": {
+          "AutoTiling": {
+            "properties": {
+              "mode": {
+                "const": "Auto",
+                "default": "Auto",
+                "description": "Automatically determine if Snap to Grid is possible, otherwise use Snap to Corners.",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "AutoTiling",
+            "type": "object",
+            "description": "Missing description for AutoTiling."
+          },
           "BackendType": {
             "enum": [
               "anndata",
@@ -2373,28 +2679,49 @@
                 "description": "Mode for writing data during conversion.\n\n- By Tile: Write data one tile at a time. This consumes less memory, but may be\n  slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is usually faster\n  than writing by tile sequentially, but may consume more memory.\n- By FOV: Write data one field of view at a time. This may the best compromise\n  between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask. This is usually\n  faster than writing by FOV sequentially, but may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
-              "tiling_mode": {
-                "$ref": "#/$defs/TilingMode",
-                "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
-                "title": "Tiling Mode"
+              "tiling_strategy": {
+                "default": {
+                  "mode": "Auto",
+                  "tolerance": 0.0
+                },
+                "description": "Tiling strategy to use during conversion.\n\n- Auto: Automatically determine if Snap to Grid is possible, otherwise use Snap to\n  Corners. Accepts an optional tolerance (in pixels) for grid alignment.\n- Snap to Grid: Tile images to fit a regular grid. This is only possible if image\n  positions align to a grid (potentially with overlap). Accepts an optional\n  tolerance (in pixels).\n- Snap to Corners: Tile images to fit a grid defined by the corner positions.\n- Inplace: Write tiles in their original positions without tiling. This may lead to\n  artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
+                "discriminator": {
+                  "mapping": {
+                    "Auto": "#/$defs/AutoTiling",
+                    "Inplace": "#/$defs/InplaceTiling",
+                    "No Tiling": "#/$defs/NoTiling",
+                    "Snap to Corners": "#/$defs/SnapToCornersTiling",
+                    "Snap to Grid": "#/$defs/SnapToGridTiling"
+                  },
+                  "propertyName": "mode"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/AutoTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToGridTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/SnapToCornersTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/InplaceTiling"
+                  },
+                  {
+                    "$ref": "#/$defs/NoTiling"
+                  }
+                ],
+                "title": "Tiling Strategy"
               },
-              "tiling_tolerance": {
-                "default": 0,
-                "description": "Tolerance in pixels for determining if Snap to Grid is possible.\nThis accounts for minor jitter in microscope stage positions when determining if\nSnap to Grid tiling can be applied.",
-                "minimum": 0,
-                "title": "Tiling Tolerance (in pixels)",
-                "type": "number"
-              },
-              "alignment_correction": {
+              "stage_position_corrections": {
                 "$ref": "#/$defs/StagePositionCorrections",
                 "default": {
                   "align_xy": false,
                   "align_z": false,
                   "align_t": false
                 },
-                "description": "Alignment correction options.",
-                "title": "Alignment Corrections"
+                "title": "Stage Position Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
@@ -2412,20 +2739,15 @@
                 },
                 "title": "OME-Zarr Options"
               },
-              "temp_json_options": {
-                "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
-                "title": "Temporary JSON Options"
-              },
               "runtime_settings": {
                 "$ref": "#/$defs/RuntimeSettings",
                 "default": {
                   "use_zarrs_codec": false,
                   "dask_scheduler": {
                     "type": "Default"
+                  },
+                  "temp_json_options": {
+                    "temp_url": "{zarr_dir}/_tmp_json"
                   }
                 },
                 "description": "Runtime knobs (zarr codec, dask scheduler) applied via a scoped\ncontext manager during conversion.",
@@ -2532,6 +2854,34 @@
             },
             "title": "FovBasedChunking",
             "type": "object"
+          },
+          "InplaceTiling": {
+            "properties": {
+              "mode": {
+                "const": "Inplace",
+                "default": "Inplace",
+                "description": "Write tiles in their original stage positions.\nThis may lead to artifacts if microscope stage positions are not precise,\nwhen tiles overlap the last written tile will overwrite previous tiles in the\noverlapping region.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "InplaceTiling",
+            "type": "object",
+            "description": "Missing description for InplaceTiling."
+          },
+          "NoTiling": {
+            "properties": {
+              "mode": {
+                "const": "No Tiling",
+                "default": "No Tiling",
+                "description": "Each field of view is written as a single OME-Zarr.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "NoTiling",
+            "type": "object",
+            "description": "Missing description for NoTiling."
           },
           "OmeZarrOptions": {
             "additionalProperties": false,
@@ -2661,6 +3011,14 @@
                   }
                 ],
                 "title": "Dask Scheduler"
+              },
+              "temp_json_options": {
+                "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
+                "description": "Options for temporary JSON storage.",
+                "title": "Temporary JSON Options"
               }
             },
             "title": "RuntimeSettings",
@@ -2678,9 +3036,43 @@
             "type": "string",
             "description": "Missing description for Scalings."
           },
+          "SnapToCornersTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Corners",
+                "default": "Snap to Corners",
+                "description": "Tile images to fit a grid defined by the corner positions.",
+                "title": "Mode",
+                "type": "string"
+              }
+            },
+            "title": "SnapToCornersTiling",
+            "type": "object",
+            "description": "Missing description for SnapToCornersTiling."
+          },
+          "SnapToGridTiling": {
+            "properties": {
+              "mode": {
+                "const": "Snap to Grid",
+                "default": "Snap to Grid",
+                "description": "Tile images to fit a regular grid. This is only possible if image positions align\nto a grid (potentially with overlap).",
+                "title": "Mode",
+                "type": "string"
+              },
+              "tolerance": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tiling Tolerance (in pixels)",
+                "type": "number"
+              }
+            },
+            "title": "SnapToGridTiling",
+            "type": "object",
+            "description": "Missing description for SnapToGridTiling."
+          },
           "StagePositionCorrections": {
             "additionalProperties": false,
-            "description": "Alignment correction for stage positions.",
+            "description": "Stage position correction options.",
             "properties": {
               "align_xy": {
                 "default": false,
@@ -2753,18 +3145,6 @@
             },
             "title": "ThreadScheduler",
             "type": "object"
-          },
-          "TilingMode": {
-            "enum": [
-              "Auto",
-              "Snap to Grid",
-              "Snap to Corners",
-              "Inplace",
-              "No Tiling"
-            ],
-            "title": "TilingMode",
-            "type": "string",
-            "description": "Missing description for TilingMode."
           },
           "WriterMode": {
             "enum": [
