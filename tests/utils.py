@@ -10,6 +10,7 @@ from ngio import (
     open_ome_zarr_container,
     open_ome_zarr_plate,
 )
+from ome_zarr_converters_tools import OverwriteMode
 from pydantic import BaseModel, Field, model_validator
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -36,7 +37,7 @@ class FingerprintModel(BaseModel):
 class RoiAssertionModel(BaseModel):
     slice_repr: str
     finger_print: FingerprintModel
-    xy_origin: tuple[float, float] | None = None
+    yx_origin: list[float] | None = None
 
 
 class TableAssertionModel(BaseModel):
@@ -122,7 +123,7 @@ class MultiSingleImageAssertionModel(BaseModel):
         return {name: img.attributes for name, img in self.images.items()}
 
 
-def _load_plate_snapshot(yaml_path: Path) -> MultiPlateAssertionModel:
+def _load_snapshot(yaml_path: Path) -> MultiPlateAssertionModel:
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
     return MultiPlateAssertionModel(**data)
@@ -205,10 +206,10 @@ def _check_roi_tables(
             roi_array = image.get_roi_as_numpy(roi)
             fingerprint = FingerprintModel.from_array(roi_array)
             assert fingerprint == roi_assert.finger_print, fingerprint
-            if roi_assert.xy_origin is not None:
+            if roi_assert.yx_origin is not None:
                 y_origin = getattr(roi, "y_micrometer_original", None)
                 x_origin = getattr(roi, "x_micrometer_original", None)
-                assert (y_origin, x_origin) == roi_assert.xy_origin
+                assert [y_origin, x_origin] == roi_assert.yx_origin
 
 
 def _check_image_against_assertion(
@@ -230,7 +231,7 @@ def _check_image_against_assertion(
     )
 
 
-def _post_compute_checks_plate(
+def _post_compute_checks(
     *, multi_plate_assertions: MultiPlateAssertionModel, zarr_dir: Path
 ):
     for plate_name, plate_assert in multi_plate_assertions.plates.items():
@@ -304,14 +305,18 @@ def _build_image_entry(
     return entry
 
 
-def _generate_plate_snapshot(
+def _generate_snapshot(
     *,
     zarr_dir: Path,
     image_list_updates: list[dict],
     snapshot_path: Path,
 ) -> None:
     """Generate multi_plate_assertions dict from converted plates."""
-    plate_names = sorted(p.name for p in zarr_dir.iterdir() if p.suffix == ".zarr")
+    plate_names = sorted({
+        Path(upd["zarr_url"]).relative_to(zarr_dir).parts[0]
+        for updates in image_list_updates
+        for upd in updates.get("image_list_updates", [])
+    })
 
     updates_by_image: dict[str, dict] = {}
     for updates in image_list_updates:
@@ -343,7 +348,7 @@ def _generate_plate_snapshot(
     MultiPlateAssertionModel(**snapshot_data)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     with open(snapshot_path, "w") as f:
-        yaml.safe_dump(
+        yaml.dump(
             snapshot_data,
             f,
             default_flow_style=False,
@@ -358,7 +363,11 @@ def _generate_single_image_snapshot(
     snapshot_path: Path,
 ) -> None:
     """Generate multi_single_image_assertions dict from converted images."""
-    zarr_names = sorted(p.name for p in zarr_dir.iterdir() if p.suffix == ".zarr")
+    zarr_names = sorted({
+        Path(upd["zarr_url"]).relative_to(zarr_dir).as_posix()
+        for updates in image_list_updates
+        for upd in updates.get("image_list_updates", [])
+    })
 
     updates_by_image: dict[str, dict] = {}
     for updates in image_list_updates:
@@ -380,7 +389,7 @@ def _generate_single_image_snapshot(
     MultiSingleImageAssertionModel(**snapshot_data)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     with open(snapshot_path, "w") as f:
-        yaml.safe_dump(
+        yaml.dump(
             snapshot_data,
             f,
             default_flow_style=False,
@@ -410,7 +419,12 @@ def run_converter_test(
         output_type: "plate" for HCS plate output, "single_image" for individual
             zarr containers at the top level of zarr_dir.
     """
-    zarr_dir = tmp_path / "ome_zarr_output"
+    if update_snapshots:
+        zarr_dir = snapshot_path.parent.parent / "output"
+        zarr_dir.mkdir(parents=True, exist_ok=True)
+        init_task_kwargs = init_task_kwargs | {"overwrite": OverwriteMode.OVERWRITE}
+    else:
+        zarr_dir = tmp_path / "output"
 
     output = init_task_fn(zarr_dir=str(zarr_dir), **init_task_kwargs)
 
@@ -421,7 +435,7 @@ def run_converter_test(
 
     if update_snapshots:
         if output_type == "plate":
-            _generate_plate_snapshot(
+            _generate_snapshot(
                 zarr_dir=zarr_dir,
                 image_list_updates=updates_list,
                 snapshot_path=snapshot_path,
@@ -441,7 +455,7 @@ def run_converter_test(
         )
 
     if output_type == "plate":
-        assertions = _load_plate_snapshot(snapshot_path)
+        assertions = _load_snapshot(snapshot_path)
         _plate_after_init_checks(
             init_output=output,
             multi_plate_assertions=assertions,
@@ -453,7 +467,7 @@ def run_converter_test(
             aggregated_attrs=assertions.aggregated_attributes(),
             zarr_dir=zarr_dir,
         )
-        _post_compute_checks_plate(
+        _post_compute_checks(
             multi_plate_assertions=assertions,
             zarr_dir=zarr_dir,
         )

@@ -125,5 +125,8 @@ pixi.lock
 # Zarr files
 *.zarr
 
+# Extended test data
+tests/data-extended/
+
 # Claude
 .claude/

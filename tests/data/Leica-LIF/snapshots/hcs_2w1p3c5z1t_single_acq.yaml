@@ -1,5 +1,5 @@
 images:
-  Project_3D_TileScan_3_B_2.zarr:
+  hcs_2w1p3c5z1t_TileScan_3_B_2.zarr:
     axes:
     - c
     - z
@@ -84,7 +84,7 @@ images:
               max: 255.0
               hash: 9c86397ecc426123b6b5c61506a66e5421e7f3a141126288fb394b7efe8c9d87
             yx_origin: null
-  Project_3D_TileScan_3_C_3.zarr:
+  hcs_2w1p3c5z1t_TileScan_3_C_3.zarr:
     axes:
     - c
     - z

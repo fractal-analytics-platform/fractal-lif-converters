@@ -7,22 +7,27 @@ from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
     convert_lif_single_acq_init_task,
 )
 
-from .utils import DATA_DIR, run_converter_test
+from .utils import run_converter_test
 
-RAW_DIR = DATA_DIR / "Leica-LIF" / "raw"
-SNAPSHOT_DIR = DATA_DIR / "Leica-LIF" / "snapshots"
+EXTENDED_DATA_DIR = Path(__file__).parent / "data-extended"
+SNAPSHOT_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "snapshots"
+RAW_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "raw"
+
+_DATASETS: list[str] = []
 
 
+@pytest.mark.extended
 @pytest.mark.parametrize(
     "init_task_kwargs, snapshot_name",
     [
         (
-            {"acquisitions": [{"path": str(RAW_DIR / "hcs_2w1p3c5z1t.lif")}]},
-            "hcs_2w1p3c5z1t_single_acq",
-        ),
+            {"acquisitions": [{"path": str(RAW_DIR / f"{name}.lif")}]},
+            f"{name}_single_acq",
+        )
+        for name in _DATASETS
     ],
 )
-def test_lif_single_acq(
+def test_lif_single_acq_extended(
     tmp_path: Path,
     init_task_kwargs: dict,
     snapshot_name: str,
