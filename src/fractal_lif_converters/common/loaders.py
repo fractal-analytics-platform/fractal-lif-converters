@@ -18,6 +18,9 @@ def _to_canonical_shape(arr: np.ndarray, dims: tuple) -> np.ndarray:
         if dim not in current:
             arr = np.expand_dims(arr, axis=i)
             current.insert(i, dim)
+    if current != list(_CANONICAL):
+        perm = [current.index(d) for d in _CANONICAL]
+        arr = np.transpose(arr, perm)
     # arr is now (T, C, Z, Y, X); squeeze T when T=1
     if arr.shape[0] == 1:
         arr = arr[0]
