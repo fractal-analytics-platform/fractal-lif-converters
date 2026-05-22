@@ -312,11 +312,13 @@ def _generate_snapshot(
     snapshot_path: Path,
 ) -> None:
     """Generate multi_plate_assertions dict from converted plates."""
-    plate_names = sorted({
-        Path(upd["zarr_url"]).relative_to(zarr_dir).parts[0]
-        for updates in image_list_updates
-        for upd in updates.get("image_list_updates", [])
-    })
+    plate_names = sorted(
+        {
+            Path(upd["zarr_url"]).relative_to(zarr_dir).parts[0]
+            for updates in image_list_updates
+            for upd in updates.get("image_list_updates", [])
+        }
+    )
 
     updates_by_image: dict[str, dict] = {}
     for updates in image_list_updates:
@@ -363,11 +365,13 @@ def _generate_single_image_snapshot(
     snapshot_path: Path,
 ) -> None:
     """Generate multi_single_image_assertions dict from converted images."""
-    zarr_names = sorted({
-        Path(upd["zarr_url"]).relative_to(zarr_dir).as_posix()
-        for updates in image_list_updates
-        for upd in updates.get("image_list_updates", [])
-    })
+    zarr_names = sorted(
+        {
+            Path(upd["zarr_url"]).relative_to(zarr_dir).as_posix()
+            for updates in image_list_updates
+            for upd in updates.get("image_list_updates", [])
+        }
+    )
 
     updates_by_image: dict[str, dict] = {}
     for updates in image_list_updates:

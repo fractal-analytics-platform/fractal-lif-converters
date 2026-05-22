@@ -13,7 +13,13 @@ EXTENDED_DATA_DIR = Path(__file__).parent / "data-extended"
 SNAPSHOT_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "snapshots"
 RAW_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "raw"
 
-_DATASETS: list[str] = []
+_DATASETS: list[str] = [
+    "img_6p3c4z1t_STED_CustomShape_RectTiles",
+    "img_4p3c1z1t_Stellaris_Positions",
+    "img_4p3c6z1t_Stellaris_Mosaic",
+    "img_1p1c1z1t_Thunder_Single",
+    "img_4p3c1z1t_Thunder_SingleSeries",
+]
 
 
 @pytest.mark.extended

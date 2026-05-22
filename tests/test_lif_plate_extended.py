@@ -13,7 +13,27 @@ EXTENDED_DATA_DIR = Path(__file__).parent / "data-extended"
 SNAPSHOT_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "snapshots"
 RAW_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "raw"
 
-_DATASETS: list[str] = []
+_DATASETS: list[str] = [
+    "hcs_2w4p3c1z1t_Falcon_Grid",
+    "hcs_2w4p3c1z1t_Falcon_MultiScan",
+    "hcs_2w4p3c5z1t_Falcon_Grid",
+    "hcs_2w4p3c1z3t_Falcon_TimeSeries",
+    "hcs_2w2p3c4z1t_STED_Mosaic",
+    "hcs_2w2p3c4z1t_STED_Positions",
+    "hcs_2w6p3c1z1t_STED_Mosaic",
+    "hcs_2w6p3c1z1t_STED_Positions",
+    "hcs_2w4p3c1z1t_Stellaris_CustomPositions",
+    "hcs_2w6p3c1z1t_Stellaris_Mosaic",
+    "hcs_2w6p3c1z1t_Stellaris_Positions",
+    "hcs_2w1p3c1z1t_Thunder_Mosaic",
+    "hcs_2w1p3c1z1t_Thunder_Positions",
+    "hcs_2w4p3c1z1t_Thunder_CustomPositions",
+    "hcs_2w4p3c1z1t_Thunder_CustomShape",
+    "hcs_2w6p3c1z1t_Thunder_Mosaic",
+    "hcs_2w6p3c1z1t_Thunder_Positions",
+    "hcs_2w6p3c5z1t_Thunder_Mosaic",
+    "hcs_2w6p3c5z4t_Thunder_Mosaic",
+]
 
 
 @pytest.mark.extended
