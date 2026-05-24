@@ -19,6 +19,8 @@ _DATASETS: list[str] = [
     "img_4p3c6z1t_Stellaris_Mosaic",
     "img_1p1c1z1t_Thunder_Single",
     "img_4p3c1z1t_Thunder_SingleSeries",
+    "img_7p3c1z1t_Falcon_MultiSeries",
+    "img_1p3c1z1t_Stellaris_SingleSite_noNavigator",
 ]
 
 
