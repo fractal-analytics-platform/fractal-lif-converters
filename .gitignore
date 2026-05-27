@@ -121,3 +121,15 @@ exports/
 .pixi
 *.egg-info
 pixi.lock
+
+# Zarr files
+*.zarr
+
+# Extended test data
+tests/data-extended/
+
+# Claude
+.claude/
+
+# debug scripts
+test_conversion.py
