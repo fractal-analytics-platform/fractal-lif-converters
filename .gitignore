@@ -130,3 +130,6 @@ tests/data-extended/
 
 # Claude
 .claude/
+
+# debug scripts
+test_conversion.py
