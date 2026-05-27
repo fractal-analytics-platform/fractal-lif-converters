@@ -34,7 +34,7 @@ name = "fractal-lif-converters"
 dynamic = ["version"]
 description = "Converter from the Lif files (Leica Microscope) to OME-Zarr format."
 readme = "README.md"
-license = { text = "GPL-3.0" }
+license = { text = "BSD-3-Clause" }
 authors = [{ name = "Lorenzo Cerrone", email = "lorenzo.cerrone@uzh.ch" }]
 requires-python = ">=3.11,<3.15"
 
