@@ -1,3 +1,5 @@
+"""Debug script"""
+
 # This is a test script to convert LIF plate acquisitions to Zarr format using
 # the fractal_lif_converters library.
 from fractal_lif_converters.common.image_in_plate_compute_task import (
@@ -29,7 +31,8 @@ def convert_lif_to_zarr(
         image_in_plate_compute_task(**item)
 
 
-path = "/Users/locerr/data/ZMB_converters/testData_Leica/241203_Stellaris/2w_4f_1t_3c_1z_customPositions_L_512x512.lif"
+base_path = "/Users/locerr/data/ZMB_converters/testData_Leica/241203_Stellaris"
+path = f"{base_path}/2w_4f_1t_3c_1z_customPositions_L_512x512.lif"
 zarr_dir = "/Users/locerr/Projects/fractal-lif-converters/output/"
 
 convert_lif_to_zarr(

@@ -10,7 +10,7 @@ from ngio import (
     open_ome_zarr_container,
     open_ome_zarr_plate,
 )
-from ome_zarr_converters_tools import OverwriteMode
+from ome_zarr_converters_tools import ConverterOptions, OverwriteMode
 from pydantic import BaseModel, Field, model_validator
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -177,18 +177,18 @@ def _image_list_updates_checks(
         image_path = zarr_url.relative_to(zarr_dir).as_posix()
         assert image_path in aggregated_types
         assert upd["types"] == aggregated_types[image_path]
-        assert upd["attributes"] == aggregated_attrs[image_path], (
-            f"{upd['attributes']} != {aggregated_attrs[image_path]}"
-        )
+        assert (
+            upd["attributes"] == aggregated_attrs[image_path]
+        ), f"{upd['attributes']} != {aggregated_attrs[image_path]}"
 
 
 def _check_roi_tables(
     ome_zarr_image: OmeZarrContainer,
     image_assertions: ImageAssertionModel,
 ):
-    assert set(ome_zarr_image.list_tables()) == set(image_assertions.tables.keys()), (
-        set(ome_zarr_image.list_tables())
-    )
+    assert set(ome_zarr_image.list_tables()) == set(
+        image_assertions.tables.keys()
+    ), set(ome_zarr_image.list_tables())
     image = ome_zarr_image.get_image()
     for table_name, table_assert in image_assertions.tables.items():
         if table_assert is None:
@@ -409,6 +409,7 @@ def run_converter_test(
     init_task_kwargs: dict,
     snapshot_path: Path,
     update_snapshots: bool,
+    converter_options: ConverterOptions,
     output_type: Literal["plate", "single_image"] = "plate",
 ):
     """Run a converter end-to-end and check against snapshot assertions.
@@ -420,6 +421,7 @@ def run_converter_test(
         init_task_kwargs: Kwargs for the init task (e.g. acquisitions).
         snapshot_path: Path to the snapshot YAML file.
         update_snapshots: If True, regenerate the snapshot file.
+        converter_options: Options controlling the OME-Zarr conversion.
         output_type: "plate" for HCS plate output, "single_image" for individual
             zarr containers at the top level of zarr_dir.
     """
@@ -430,7 +432,9 @@ def run_converter_test(
     else:
         zarr_dir = tmp_path / "output"
 
-    output = init_task_fn(zarr_dir=str(zarr_dir), **init_task_kwargs)
+    output = init_task_fn(
+        zarr_dir=str(zarr_dir), **init_task_kwargs, converter_options=converter_options
+    )
 
     updates_list = []
     for p in output["parallelization_list"]:

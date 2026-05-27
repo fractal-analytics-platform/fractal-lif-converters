@@ -27,6 +27,7 @@ def test_lif_plate(
     init_task_kwargs: dict,
     snapshot_name: str,
     update_snapshots: bool,
+    converter_options,
 ):
     run_converter_test(
         tmp_path=tmp_path,
@@ -35,5 +36,6 @@ def test_lif_plate(
         init_task_kwargs=init_task_kwargs,
         snapshot_path=SNAPSHOT_DIR / f"{snapshot_name}.yaml",
         update_snapshots=update_snapshots,
+        converter_options=converter_options,
         output_type="plate",
     )

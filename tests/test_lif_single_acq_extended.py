@@ -75,6 +75,7 @@ def test_lif_single_acq_extended(
     init_task_kwargs: dict,
     snapshot_path: Path,
     update_snapshots: bool,
+    converter_options,
 ):
     run_converter_test(
         tmp_path=tmp_path,
@@ -83,5 +84,6 @@ def test_lif_single_acq_extended(
         init_task_kwargs=init_task_kwargs,
         snapshot_path=snapshot_path,
         update_snapshots=update_snapshots,
+        converter_options=converter_options,
         output_type="single_image",
     )
