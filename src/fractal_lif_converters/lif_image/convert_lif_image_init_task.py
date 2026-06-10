@@ -1,4 +1,4 @@
-"""Initialize the LIF single-acquisition to OME-Zarr conversion task."""
+"""Initialize the LIF image to OME-Zarr conversion task."""
 
 import logging
 
@@ -13,17 +13,17 @@ from fractal_lif_converters.common import (
     BaseAcquisitionModel,
     parse_acquisitions,
 )
-from fractal_lif_converters.common.options import LifAcquisitionOptions
-from fractal_lif_converters.lif_single.parser import parse_lif_single_acq_metadata
+from fractal_lif_converters.common._options import LifAcquisitionOptions
+from fractal_lif_converters.lif_image._parser import parse_lif_image_metadata
 
-logger = logging.getLogger("convert_lif_single_acq_task")
+logger = logging.getLogger("convert_lif_image_task")
 
 
 default_converter_options = ConverterOptions()
 
 
-class LifSingleAcqAcquisitionModel(BaseAcquisitionModel):
-    """Acquisition input model for LIF single-acquisition conversion.
+class LifImageAcquisitionModel(BaseAcquisitionModel):
+    """Acquisition input model for LIF image conversion.
 
     ``tile_scan_name`` controls whether a single scan is converted (named mode)
     or every scan in the file is processed (wildcard mode).
@@ -46,7 +46,7 @@ class LifSingleAcqAcquisitionModel(BaseAcquisitionModel):
     """Advanced acquisition options (LIF-specific)."""
 
     @model_validator(mode="after")
-    def _check_combo(self) -> "LifSingleAcqAcquisitionModel":
+    def _check_combo(self) -> "LifImageAcquisitionModel":
         if self.tile_scan_name is None and self.zarr_name is not None:
             raise ValueError(
                 "'zarr_name' can only be used when 'tile_scan_name' is provided."
@@ -55,26 +55,26 @@ class LifSingleAcqAcquisitionModel(BaseAcquisitionModel):
 
 
 @validate_call
-def convert_lif_single_acq_init_task(
+def convert_lif_image_init_task(
     *,
     # Fractal parameters
     zarr_dir: str,
     # Task parameters
-    acquisitions: list[LifSingleAcqAcquisitionModel],
+    acquisitions: list[LifImageAcquisitionModel],
     converter_options: ConverterOptions = default_converter_options,
     overwrite: OverwriteMode = OverwriteMode.NO_OVERWRITE,
 ):
-    """Initialize the task to convert a LIF single-acquisition dataset to OME-Zarr.
+    """Initialize the task to convert a LIF image dataset to OME-Zarr.
 
     Args:
         zarr_dir (str): Directory to store the Zarr files.
-        acquisitions (list[LifSingleAcqAcquisitionModel]): List of raw acquisitions
+        acquisitions (list[LifImageAcquisitionModel]): List of raw acquisitions
             to convert to OME-Zarr.
         converter_options (ConverterOptions): Advanced converter options.
         overwrite (OverwriteMode): Overwrite mode for existing data.
     """
     tiled_images = parse_acquisitions(
-        parse_function=parse_lif_single_acq_metadata,
+        parse_function=parse_lif_image_metadata,
         acquisitions=acquisitions,
         converter_options=converter_options,
     )
@@ -96,6 +96,4 @@ def convert_lif_single_acq_init_task(
 if __name__ == "__main__":
     from fractal_task_tools.task_wrapper import run_fractal_task
 
-    run_fractal_task(
-        task_function=convert_lif_single_acq_init_task, logger_name=logger.name
-    )
+    run_fractal_task(task_function=convert_lif_image_init_task, logger_name=logger.name)

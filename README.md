@@ -16,7 +16,7 @@ format.
 | Task | Use case |
 |---|---|
 | `Convert Lif Plate to OME-Zarr` | Convert a `.lif` containing a plate-shaped tile-scan into an OME-Zarr HCS plate. |
-| `Convert Lif Scene to OME-Zarr` | Convert a single scene (single-position, multi-position, or mosaic) into a standalone OME-Zarr image. |
+| `Convert Lif Image to OME-Zarr` | Convert a single image (single-position, multi-position, or mosaic) into a standalone OME-Zarr image. |
 
 Each task is a Fractal **compound task**: an init step parses the `.lif`
 metadata and builds the parallelization list, and a compute step writes the

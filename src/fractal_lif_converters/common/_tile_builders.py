@@ -17,7 +17,7 @@ from ome_zarr_converters_tools import (
 )
 from pydantic import BaseModel
 
-from fractal_lif_converters.common.loaders import LifMosaicLoader
+from fractal_lif_converters.common._loaders import LifMosaicLoader
 
 
 class ImageType(Enum):
@@ -255,7 +255,7 @@ def build_plate_acq_tiles(
     return tiles
 
 
-def build_single_acq_tiles(
+def build_image_tiles(
     *,
     lif_file: liffile.LifFile,
     image_infos: list[_ImageInfo],

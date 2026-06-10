@@ -2,10 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from fractal_lif_converters.common import image_in_plate_compute_task
-from fractal_lif_converters.lif_plate.convert_lif_plate_init_task import (
-    convert_lif_plate_init_task,
-)
+from fractal_lif_converters import convert_lif_plate
 
 from .utils import DATA_DIR, run_converter_test
 
@@ -31,9 +28,8 @@ def test_lif_plate(
 ):
     run_converter_test(
         tmp_path=tmp_path,
-        init_task_fn=convert_lif_plate_init_task,
-        compute_task_fn=image_in_plate_compute_task,
-        init_task_kwargs=init_task_kwargs,
+        api_fn=convert_lif_plate,
+        api_kwargs=init_task_kwargs,
         snapshot_path=SNAPSHOT_DIR / f"{snapshot_name}.yaml",
         update_snapshots=update_snapshots,
         converter_options=converter_options,

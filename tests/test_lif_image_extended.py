@@ -2,10 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from fractal_lif_converters.common import single_image_compute_task
-from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
-    convert_lif_single_acq_init_task,
-)
+from fractal_lif_converters import convert_lif_image
 
 from .utils import run_converter_test
 
@@ -70,7 +67,7 @@ _XLEF_TIF_DATASETS: list[str] = [
         for name in _XLEF_TIF_DATASETS
     ],
 )
-def test_lif_single_acq_extended(
+def test_lif_image_extended(
     tmp_path: Path,
     init_task_kwargs: dict,
     snapshot_path: Path,
@@ -79,9 +76,8 @@ def test_lif_single_acq_extended(
 ):
     run_converter_test(
         tmp_path=tmp_path,
-        init_task_fn=convert_lif_single_acq_init_task,
-        compute_task_fn=single_image_compute_task,
-        init_task_kwargs=init_task_kwargs,
+        api_fn=convert_lif_image,
+        api_kwargs=init_task_kwargs,
         snapshot_path=snapshot_path,
         update_snapshots=update_snapshots,
         converter_options=converter_options,

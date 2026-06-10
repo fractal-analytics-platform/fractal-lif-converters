@@ -7,4 +7,13 @@ try:
 except PackageNotFoundError:
     __version__ = "uninstalled"
 
-__all__ = ["__version__"]
+from fractal_lif_converters.lif_image import LifImageAcquisitionModel, convert_lif_image
+from fractal_lif_converters.lif_plate import LifPlateAcquisitionModel, convert_lif_plate
+
+__all__ = [
+    "__version__",
+    "LifImageAcquisitionModel",
+    "LifPlateAcquisitionModel",
+    "convert_lif_image",
+    "convert_lif_plate",
+]

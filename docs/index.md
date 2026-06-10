@@ -7,7 +7,7 @@ Fractal LIF Converters is a collection of [Fractal](https://fractal-analytics-pl
 | Task | Output | Description |
 |---|---|---|
 | `Convert LIF Plate to OME-Zarr` | OME-Zarr HCS Plate | Converts a multi-well plate acquisition stored in a LIF file |
-| `Convert LIF Scene to OME-Zarr` | OME-Zarr Image | Converts one or more scenes from a LIF file into standalone OME-Zarr images |
+| `Convert LIF Image to OME-Zarr` | OME-Zarr Image | Converts one or more images from a LIF file into standalone OME-Zarr images |
 
 Each converter reads the native Leica metadata embedded in the LIF file and produces a well-structured OME-Zarr dataset that can be viewed in tools like [napari](https://napari.org/) or processed with downstream Fractal tasks.
 

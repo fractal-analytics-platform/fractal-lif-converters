@@ -150,4 +150,4 @@ All converters support three overwrite modes when the output already exists:
 ## Supported Converters
 
 - [LIF Plate](lif_plate.md)
-- [LIF Single Acquisition](lif_single.md)
+- [LIF Image](lif_image.md)

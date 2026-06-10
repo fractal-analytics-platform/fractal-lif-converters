@@ -16,12 +16,12 @@ from ome_zarr_converters_tools import (
     tiles_aggregation_pipeline,
 )
 
-from fractal_lif_converters.common.string_validation import (
+from fractal_lif_converters.common._string_validation import (
     validate_position_name_type1,
     validate_well_name_type1,
     validate_well_name_type2,
 )
-from fractal_lif_converters.common.tile_builders import (
+from fractal_lif_converters.common._tile_builders import (
     ImageType,
     _ImageInPlateInfo,
     build_plate_acq_tiles,
