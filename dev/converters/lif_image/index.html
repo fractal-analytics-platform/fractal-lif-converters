@@ -25,7 +25,7 @@
     
     
       
-        <title>LIF Single Acquisition - Fractal LIF Converters</title>
+        <title>LIF Image - Fractal LIF Converters</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#lif-single-acquisition" class="md-skip">
+        <a href="#lif-image" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              LIF Single Acquisition
+              LIF Image
             
           </span>
         </div>
@@ -288,6 +288,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how_to_run_the_converters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to Run the Converters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -306,10 +333,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -327,8 +354,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -417,7 +444,7 @@
   <span class="md-ellipsis">
     
   
-    LIF Single Acquisition
+    LIF Image
   
 
     
@@ -435,7 +462,7 @@
   <span class="md-ellipsis">
     
   
-    LIF Single Acquisition
+    LIF Image
   
 
     
@@ -498,6 +525,17 @@
     <span class="md-ellipsis">
       
         Task Parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python API
       
     </span>
   </a>
@@ -644,6 +682,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#python-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python API
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -664,10 +713,10 @@
   
 
 
-<h1 id="lif-single-acquisition">LIF Single Acquisition</h1>
-<p>Converts one or more scenes from a Leica LIF file into standalone OME-Zarr images (not a plate structure).</p>
+<h1 id="lif-image">LIF Image</h1>
+<p>Converts one or more images from a Leica LIF file into standalone OME-Zarr images (not a plate structure).</p>
 <h2 id="expected-file-structure">Expected File Structure</h2>
-<p>The converter expects a <code>.lif</code> file where each scene to convert is a named entry at the top level or nested one level deep. Three image layouts are supported:</p>
+<p>The converter expects a <code>.lif</code> file where each image to convert is a named entry at the top level or nested one level deep. Three image layouts are supported:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Single Position</label><label for="__tabbed_1_2">Multi-Position</label><label for="__tabbed_1_3">Mosaic</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -702,7 +751,7 @@
 <h2 id="metadata">Metadata</h2>
 <p>The converter extracts the following from the LIF file:</p>
 <ul>
-<li>Scene name and stage positions (X, Y, Z)</li>
+<li>Image name and stage positions (X, Y, Z)</li>
 <li>Channel names and IDs</li>
 <li>Pixel size (XY and Z spacing in micrometers)</li>
 <li>Timepoint indices</li>
@@ -752,6 +801,21 @@
 <li>Images exported in Leica auto-saved mode are not supported.</li>
 </ul>
 </div>
+<h2 id="python-api">Python API</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fractal_lif_converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_lif_image</span><span class="p">,</span> <span class="n">LifImageAcquisitionModel</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">acquisitions</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">LifImageAcquisitionModel</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/path/to/image.lif&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">]</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">convert_lif_image</span><span class="p">(</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">zarr_dir</span><span class="o">=</span><span class="s2">&quot;/output/zarr&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">acquisitions</span><span class="o">=</span><span class="n">acquisitions</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">)</span>
+</code></pre></div>
+<p>See <a href="../../how_to_run_the_converters/">How to Run the Converters</a> for all common parameters and execution details.</p>
 
 
 
