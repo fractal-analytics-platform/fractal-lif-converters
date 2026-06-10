@@ -1,6 +1,6 @@
 """Common utilities for fractal LIF converters."""
 
-from fractal_lif_converters.common._utils import (
+from fractal_lif_converters.common.acquisitions import (
     STANDARD_ROWS_NAMES,
     BaseAcquisitionModel,
     get_attributes_from_condition_table,
