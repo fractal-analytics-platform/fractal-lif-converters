@@ -1,8 +1,4 @@
-# Lif to OME-Zarr Converters
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/fractal-analytics-platform/fractal-logos/refs/heads/main/projects/Fractal_lif_converters.png" alt="Fractal lif converter logo" width="400">
-</p>
+# Fractal LIF Converters
 
 [![CI (build and test)](https://github.com/fractal-analytics-platform/fractal-lif-converters/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/fractal-analytics-platform/fractal-lif-converters/actions/workflows/build_and_test.yml)
 [![codecov](https://codecov.io/gh/fractal-analytics-platform/fractal-lif-converters/graph/badge.svg?token=YTN1VbbTeq)](https://codecov.io/gh/fractal-analytics-platform/fractal-lif-converters)
@@ -28,114 +24,22 @@ image data well-by-well (or scene-by-scene).
 pip install fractal-lif-converters
 ```
 
-## Supported Lif File Plate Layouts
+## Part of the OME-Zarr converters ecosystem
 
-The following plate layouts are supported:
+This converter is a thin, format-specific layer built on
+[`ome-zarr-converters-tools`](https://github.com/BioVisionCenter/ome-zarr-converters-tools),
+the shared engine that handles tiling, image registration, and OME-Zarr writing for
+the whole Fractal converter family. Because they all share that engine, every
+converter offers the same options, behavior, and development workflow.
 
-* Single Position Plates
+Sibling converters built on the same tooling:
 
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A
-    ------------/1 (Simple Image)
-    ```
+- [`fractal-czi-converters`](https://github.com/fractal-analytics-platform/fractal-czi-converters) — Zeiss `.czi`
+- [`fractal-nd2-converters`](https://github.com/fractal-analytics-platform/fractal-nd2-converters) — Nikon `.nd2`
+- [`fractal-uzh-converters`](https://github.com/fractal-analytics-platform/fractal-uzh-converters) — HCS plates (Operetta, ScanR, CQ3K, CellVoyager, ImageXpress, custom TIFF)
 
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A1 (Simple Image)
-    --------/...
-    ```
+## Documentation
 
-* Multi Position Plates
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A
-    ------------/1
-    ----------------/R1 (Simple Image)
-    ----------------/R2 (Simple Image)
-    ----------------/...
-    ```
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A1
-    ------------/R1 (Simple Image)
-    ------------/R2 (Simple Image)
-    ------------/...
-    ```
-
-* Mosaic Plates
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A
-    ------------/1 (Mosaic Image)
-    ------------/...
-    ```
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/A1 (Mosaic Image)
-    --------/...
-    ```
-
-The names in curly braces `{}` can be freely chosen by the user. The other
-names must follow these conventions:
-
-* Well names are a single or double letter followed by a positive integer.
-  Valid examples: `A1`, `A2`, `B1`, `AA1`, `AA12`.
-* Wells can also be hierarchically structured, e.g. `A/1`, `A/2`, `B/1`,
-  `AA/1`, `AA/12`.
-* Multi-position wells use `R` followed by a positive integer for each
-  position: `R1`, `R2`, `R3`, `R12`.
-* For more complex layouts (e.g. FLIM), the converter ignores any data that
-  doesn't follow the conventions above. For example:
-
-  ```text
-  /{Project.lif}
-  ----/{Tilescan 1}/
-  --------/A/1/R1 (Converted)
-  --------/A/1/R1/FLIM/Intensity (Ignored)
-  --------------------/Fast Flim (Ignored)
-  --------------------/Standard Deviation (Ignored)
-  ```
-
-## Supported Lif File Image Layouts
-
-The following image layouts are supported:
-
-* Single Position Image
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1} (Simple Image)
-    ```
-
-* Multi Position Image
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1}/
-    --------/Position 1 (Simple Image)
-    --------/Position 2 (Simple Image)
-    --------/...
-    ```
-
-* Mosaic Image
-
-    ```text
-    /{Project.lif}
-    ----/{Tilescan 1} (Mosaic Image)
-    ```
-
-The names in curly braces `{}` can be freely chosen by the user. For
-multi-position images the position names must be `Position` followed by a
-space and a positive integer, e.g. `Position 1`, `Position 2`, `Position 12`.
-Scans that don't follow these conventions are ignored.
+Full documentation — including the supported file layouts, all converter
+parameters, and the condition-table format — is available at
+<https://fractal-analytics-platform.github.io/fractal-lif-converters/>.
