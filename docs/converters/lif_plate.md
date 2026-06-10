@@ -121,3 +121,24 @@ The converter extracts the following from the LIF file:
 !!! warning "Limitations"
     - This converter has been tested on a limited set of LIF acquisitions and may not handle all formats.
     - Images exported in Leica auto-saved mode are not supported.
+
+## Python API
+
+```python
+from fractal_lif_converters import convert_lif_plate, LifPlateAcquisitionModel
+
+acquisitions = [
+    LifPlateAcquisitionModel(
+        path="/path/to/plate.lif",
+        plate_name="my_plate",
+        acquisition_id=0,
+    )
+]
+
+convert_lif_plate(
+    zarr_dir="/output/zarr",
+    acquisitions=acquisitions,
+)
+```
+
+See [How to Run the Converters](../how_to_run_the_converters.md) for all common parameters and execution details.

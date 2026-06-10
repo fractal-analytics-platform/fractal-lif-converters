@@ -1,16 +1,16 @@
 """Common utilities for fractal LIF converters."""
 
+from fractal_lif_converters.common.acquisitions import (
+    STANDARD_ROWS_NAMES,
+    BaseAcquisitionModel,
+    get_attributes_from_condition_table,
+    parse_acquisitions,
+)
 from fractal_lif_converters.common.image_in_plate_compute_task import (
     image_in_plate_compute_task,
 )
 from fractal_lif_converters.common.single_image_compute_task import (
     single_image_compute_task,
-)
-from fractal_lif_converters.common.utils import (
-    STANDARD_ROWS_NAMES,
-    BaseAcquisitionModel,
-    get_attributes_from_condition_table,
-    parse_acquisitions,
 )
 
 __all__ = [

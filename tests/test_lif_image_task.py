@@ -2,10 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from fractal_lif_converters.common import single_image_compute_task
-from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
-    convert_lif_single_acq_init_task,
-)
+from fractal_lif_converters import convert_lif_image
 
 from .utils import DATA_DIR, run_converter_test
 
@@ -18,11 +15,11 @@ SNAPSHOT_DIR = DATA_DIR / "Leica-LIF" / "snapshots"
     [
         (
             {"acquisitions": [{"path": str(RAW_DIR / "hcs_2w1p3c5z1t.lif")}]},
-            "hcs_2w1p3c5z1t_single_acq",
+            "img_2w1p3c5z1t",
         ),
     ],
 )
-def test_lif_single_acq(
+def test_lif_image(
     tmp_path: Path,
     init_task_kwargs: dict,
     snapshot_name: str,
@@ -31,9 +28,8 @@ def test_lif_single_acq(
 ):
     run_converter_test(
         tmp_path=tmp_path,
-        init_task_fn=convert_lif_single_acq_init_task,
-        compute_task_fn=single_image_compute_task,
-        init_task_kwargs=init_task_kwargs,
+        api_fn=convert_lif_image,
+        api_kwargs=init_task_kwargs,
         snapshot_path=SNAPSHOT_DIR / f"{snapshot_name}.yaml",
         update_snapshots=update_snapshots,
         converter_options=converter_options,

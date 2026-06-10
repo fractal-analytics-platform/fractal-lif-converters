@@ -1,4 +1,4 @@
-"""Parse LIF single-acquisition metadata into ``TiledImage`` objects."""
+"""Parse LIF image metadata into ``TiledImage`` objects."""
 
 from __future__ import annotations
 
@@ -16,19 +16,19 @@ from ome_zarr_converters_tools import (
     tiles_aggregation_pipeline,
 )
 
-from fractal_lif_converters.common.string_validation import (
+from fractal_lif_converters.common._string_validation import (
     validate_position_name_type1,
     validate_position_name_type2,
 )
-from fractal_lif_converters.common.tile_builders import (
+from fractal_lif_converters.common._tile_builders import (
     ImageType,
     _ImageInfo,
-    build_single_acq_tiles,
+    build_image_tiles,
 )
 
 if TYPE_CHECKING:
-    from fractal_lif_converters.lif_single.convert_lif_single_acq_init_task import (
-        LifSingleAcqAcquisitionModel,
+    from fractal_lif_converters.lif_image.convert_lif_image_init_task import (
+        LifImageAcquisitionModel,
     )
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,7 @@ def _pixel_size_um(lif_image: Any, dim: str) -> float:
 
 
 def _make_acquisition_details_factory(
-    acquisition_model: LifSingleAcqAcquisitionModel,
+    acquisition_model: LifImageAcquisitionModel,
 ):
     def _factory(lif_image: Any) -> AcquisitionDetails:
         scale_x = _pixel_size_um(lif_image, "X")
@@ -167,12 +167,12 @@ def _make_acquisition_details_factory(
     return _factory
 
 
-def parse_lif_single_acq_metadata(
+def parse_lif_image_metadata(
     *,
-    acquisition_model: LifSingleAcqAcquisitionModel,
+    acquisition_model: LifImageAcquisitionModel,
     converter_options: ConverterOptions,
 ) -> list[TiledImage]:
-    """Parse LIF single-acquisition metadata and return ``TiledImage`` objects."""
+    """Parse LIF image metadata and return ``TiledImage`` objects."""
     lif_path = acquisition_model.path
     lif_file = liffile.LifFile(lif_path, squeeze=False)
 
@@ -199,7 +199,7 @@ def parse_lif_single_acq_metadata(
         else:
             image_path = f"{lif_stem}_{scan_name}".replace(" ", "_")
 
-        tiles = build_single_acq_tiles(
+        tiles = build_image_tiles(
             lif_file=lif_file,
             image_infos=image_infos,
             image_path=image_path,

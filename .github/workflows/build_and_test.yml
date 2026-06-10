@@ -11,12 +11,33 @@ on:
   release:
     types: [published]
 
-
 jobs:
+  manifest:
+    name: Check manifest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install package
+        run: python -m pip install -e .[test]
+
+      - name: Check if manifest is up to date
+        run: fractal-manifest check --package fractal_lif_converters
+
   tests:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-latest]
+        os: [ubuntu-22.04, windows-latest, macos-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     name: "Core, Python ${{ matrix.python-version }}, ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
@@ -36,9 +57,6 @@ jobs:
       - name: Install package
         run: python -m pip install -e .[test]
 
-      - name: Check if manifest is up to date
-        run: fractal-manifest check --package fractal_lif_converters
-
       - name: Test core library with pytest
         run: python -m pytest tests
 
@@ -51,7 +69,7 @@ jobs:
 
   deploy:
     name: Deploy
-    needs: tests
+    needs: [tests, manifest]
     if: success() && startsWith(github.ref, 'refs/tags/') && github.event_name != 'schedule'
     runs-on: ubuntu-latest
 
@@ -83,4 +101,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: './dist/*'
+          files: "./dist/*"

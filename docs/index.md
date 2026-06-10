@@ -7,7 +7,7 @@ Fractal LIF Converters is a collection of [Fractal](https://fractal-analytics-pl
 | Task | Output | Description |
 |---|---|---|
 | `Convert LIF Plate to OME-Zarr` | OME-Zarr HCS Plate | Converts a multi-well plate acquisition stored in a LIF file |
-| `Convert LIF Scene to OME-Zarr` | OME-Zarr Image | Converts one or more scenes from a LIF file into standalone OME-Zarr images |
+| `Convert LIF Image to OME-Zarr` | OME-Zarr Image | Converts one or more images from a LIF file into standalone OME-Zarr images |
 
 Each converter reads the native Leica metadata embedded in the LIF file and produces a well-structured OME-Zarr dataset that can be viewed in tools like [napari](https://napari.org/) or processed with downstream Fractal tasks.
 
@@ -28,6 +28,20 @@ You configure the init task with one or more **acquisitions** (paths to your LIF
 
 !!! tip "Condition Tables"
     You can attach experimental metadata (drug treatments, concentrations, replicates, etc.) to wells using a **condition table** CSV file. See the [Condition Tables](condition_tables.md) guide for details.
+
+## Part of the OME-Zarr converters ecosystem
+
+This converter is a thin, format-specific layer built on
+[`ome-zarr-converters-tools`](https://github.com/BioVisionCenter/ome-zarr-converters-tools),
+the shared engine that handles tiling, image registration, and OME-Zarr writing for
+the whole Fractal converter family. Because they all share that engine, every
+converter offers the same options, behavior, and development workflow.
+
+Sibling converters built on the same tooling:
+
+- [`fractal-czi-converters`](https://fractal-analytics-platform.github.io/fractal-czi-converters/) — Zeiss `.czi`
+- [`fractal-nd2-converters`](https://fractal-analytics-platform.github.io/fractal-nd2-converters/) — Nikon `.nd2`
+- [`fractal-uzh-converters`](https://fractal-analytics-platform.github.io/fractal-uzh-converters/) — HCS plates (Operetta, ScanR, CQ3K, CellVoyager, ImageXpress, custom TIFF)
 
 ## Quick Links
 

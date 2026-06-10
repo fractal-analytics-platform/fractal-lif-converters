@@ -137,13 +137,12 @@ def _load_single_image_snapshot(yaml_path: Path) -> MultiSingleImageAssertionMod
 
 def _plate_after_init_checks(
     *,
-    init_output: dict,
+    updates_list: list,
     multi_plate_assertions: MultiPlateAssertionModel,
     zarr_dir: Path,
 ):
-    parallelization_list = len(init_output["parallelization_list"])
     expected = multi_plate_assertions.expected_parallelization_list_length
-    assert parallelization_list == expected
+    assert len(updates_list) == expected
     for plate_name, plate_assert in multi_plate_assertions.plates.items():
         plate_path = zarr_dir / plate_name
         plate = open_ome_zarr_plate(plate_path)
@@ -153,12 +152,11 @@ def _plate_after_init_checks(
 
 def _single_image_after_init_checks(
     *,
-    init_output: dict,
+    updates_list: list,
     assertions: MultiSingleImageAssertionModel,
 ):
-    parallelization_list = len(init_output["parallelization_list"])
     expected = assertions.expected_parallelization_list_length
-    assert parallelization_list == expected
+    assert len(updates_list) == expected
 
 
 def _image_list_updates_checks(
@@ -404,9 +402,8 @@ def _generate_single_image_snapshot(
 def run_converter_test(
     *,
     tmp_path: Path,
-    init_task_fn: Callable,
-    compute_task_fn: Callable,
-    init_task_kwargs: dict,
+    api_fn: Callable,
+    api_kwargs: dict,
     snapshot_path: Path,
     update_snapshots: bool,
     converter_options: ConverterOptions,
@@ -416,9 +413,8 @@ def run_converter_test(
 
     Args:
         tmp_path: Pytest tmp_path for zarr output.
-        init_task_fn: The converter init task function.
-        compute_task_fn: The compute task function (image_in_plate or single_image).
-        init_task_kwargs: Kwargs for the init task (e.g. acquisitions).
+        api_fn: The high-level converter API function.
+        api_kwargs: Kwargs for the API function (e.g. acquisitions).
         snapshot_path: Path to the snapshot YAML file.
         update_snapshots: If True, regenerate the snapshot file.
         converter_options: Options controlling the OME-Zarr conversion.
@@ -428,18 +424,13 @@ def run_converter_test(
     if update_snapshots:
         zarr_dir = snapshot_path.parent.parent / "output"
         zarr_dir.mkdir(parents=True, exist_ok=True)
-        init_task_kwargs = init_task_kwargs | {"overwrite": OverwriteMode.OVERWRITE}
+        api_kwargs = api_kwargs | {"overwrite": OverwriteMode.OVERWRITE}
     else:
         zarr_dir = tmp_path / "output"
 
-    output = init_task_fn(
-        zarr_dir=str(zarr_dir), **init_task_kwargs, converter_options=converter_options
+    updates_list = api_fn(
+        zarr_dir=str(zarr_dir), **api_kwargs, converter_options=converter_options
     )
-
-    updates_list = []
-    for p in output["parallelization_list"]:
-        update = compute_task_fn(**p)
-        updates_list.append(update)
 
     if update_snapshots:
         if output_type == "plate":
@@ -465,7 +456,7 @@ def run_converter_test(
     if output_type == "plate":
         assertions = _load_snapshot(snapshot_path)
         _plate_after_init_checks(
-            init_output=output,
+            updates_list=updates_list,
             multi_plate_assertions=assertions,
             zarr_dir=zarr_dir,
         )
@@ -482,7 +473,7 @@ def run_converter_test(
     else:
         assertions = _load_single_image_snapshot(snapshot_path)
         _single_image_after_init_checks(
-            init_output=output,
+            updates_list=updates_list,
             assertions=assertions,
         )
         _image_list_updates_checks(

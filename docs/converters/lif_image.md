@@ -1,10 +1,10 @@
-# LIF Single Acquisition
+# LIF Image
 
-Converts one or more scenes from a Leica LIF file into standalone OME-Zarr images (not a plate structure).
+Converts one or more images from a Leica LIF file into standalone OME-Zarr images (not a plate structure).
 
 ## Expected File Structure
 
-The converter expects a `.lif` file where each scene to convert is a named entry at the top level or nested one level deep. Three image layouts are supported:
+The converter expects a `.lif` file where each image to convert is a named entry at the top level or nested one level deep. Three image layouts are supported:
 
 === "Single Position"
 
@@ -48,7 +48,7 @@ Names in curly braces (e.g., `Tilescan 1`) can be freely chosen. Scans that do n
 
 The converter extracts the following from the LIF file:
 
-- Scene name and stage positions (X, Y, Z)
+- Image name and stage positions (X, Y, Z)
 - Channel names and IDs
 - Pixel size (XY and Z spacing in micrometers)
 - Timepoint indices
@@ -66,3 +66,22 @@ The converter extracts the following from the LIF file:
 !!! warning "Limitations"
     - This converter has been tested on a limited set of LIF acquisitions and may not handle all formats.
     - Images exported in Leica auto-saved mode are not supported.
+
+## Python API
+
+```python
+from fractal_lif_converters import convert_lif_image, LifImageAcquisitionModel
+
+acquisitions = [
+    LifImageAcquisitionModel(
+        path="/path/to/image.lif",
+    )
+]
+
+convert_lif_image(
+    zarr_dir="/output/zarr",
+    acquisitions=acquisitions,
+)
+```
+
+See [How to Run the Converters](../how_to_run_the_converters.md) for all common parameters and execution details.

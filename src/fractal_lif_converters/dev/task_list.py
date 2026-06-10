@@ -19,13 +19,13 @@ TASK_LIST = [
         docs_info="file:docs_info/lif_plate_task.md",
     ),
     ConverterCompoundTask(
-        name="Convert Lif Scene to OME-Zarr",
-        executable_init="lif_single/convert_lif_single_acq_init_task.py",
+        name="Convert Lif Image to OME-Zarr",
+        executable_init="lif_image/convert_lif_image_init_task.py",
         executable="common/single_image_compute_task.py",
         meta_init={"cpus_per_task": 1, "mem": 4000},
         meta={"cpus_per_task": 1, "mem": 12000},
         category="Conversion",
         tags=["Leica", "Single Image Converter"],
-        docs_info="file:docs_info/lif_single_acq_task.md",
+        docs_info="file:docs_info/lif_image_task.md",
     ),
 ]

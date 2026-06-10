@@ -14,8 +14,8 @@ from fractal_lif_converters.common import (
     BaseAcquisitionModel,
     parse_acquisitions,
 )
-from fractal_lif_converters.common.options import LifAcquisitionOptions
-from fractal_lif_converters.lif_plate.parser import parse_lif_plate_metadata
+from fractal_lif_converters.common._options import LifAcquisitionOptions
+from fractal_lif_converters.lif_plate._parser import parse_lif_plate_metadata
 
 logger = logging.getLogger("convert_lif_plate_task")
 
