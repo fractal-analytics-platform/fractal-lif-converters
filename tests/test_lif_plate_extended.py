@@ -72,7 +72,7 @@ _XLEF_TIF_DATASETS: list[str] = [
     [
         pytest.param(
             {"acquisitions": [{"path": str(LIF_RAW_DIR / f"{name}.lif")}]},
-            LIF_SNAPSHOT_DIR / f"{name}_plate.yaml",
+            LIF_SNAPSHOT_DIR / f"{name}.yaml",
             id=name,
         )
         for name in _DATASETS
@@ -84,7 +84,7 @@ _XLEF_TIF_DATASETS: list[str] = [
                     {"path": str(XLEF_RAW_DIR / f"{name}" / f"{name}.xlef")}
                 ]
             },
-            XLEF_SNAPSHOT_DIR / f"{name}_plate.yaml",
+            XLEF_SNAPSHOT_DIR / f"{name}.yaml",
             id=name,
         )
         for name in _XLEF_DATASETS
@@ -96,7 +96,7 @@ _XLEF_TIF_DATASETS: list[str] = [
                     {"path": str(XLEF_TIF_RAW_DIR / f"{name}" / f"{name}.xlef")}
                 ]
             },
-            XLEF_TIF_SNAPSHOT_DIR / f"{name}_plate.yaml",
+            XLEF_TIF_SNAPSHOT_DIR / f"{name}.yaml",
             id=name,
         )
         for name in _XLEF_TIF_DATASETS

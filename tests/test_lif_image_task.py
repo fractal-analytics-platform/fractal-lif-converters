@@ -15,7 +15,7 @@ SNAPSHOT_DIR = DATA_DIR / "Leica-LIF" / "snapshots"
     [
         (
             {"acquisitions": [{"path": str(RAW_DIR / "hcs_2w1p3c5z1t.lif")}]},
-            "hcs_2w1p3c5z1t_image",
+            "img_2w1p3c5z1t",
         ),
     ],
 )
