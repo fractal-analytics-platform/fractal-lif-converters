@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import pytest
+from ome_zarr_converters_tools.testing import run_converter_test
 
 from fractal_lif_converters import convert_lif_plate
-
-from .utils import run_converter_test
 
 EXTENDED_DATA_DIR = Path(__file__).parent / "data-extended"
 LIF_SNAPSHOT_DIR = EXTENDED_DATA_DIR / "Leica-LIF" / "snapshots"
@@ -72,7 +71,7 @@ _XLEF_TIF_DATASETS: list[str] = [
     [
         pytest.param(
             {"acquisitions": [{"path": str(LIF_RAW_DIR / f"{name}.lif")}]},
-            LIF_SNAPSHOT_DIR / f"{name}.yaml",
+            LIF_SNAPSHOT_DIR / f"{name}.json",
             id=name,
         )
         for name in _DATASETS
@@ -84,7 +83,7 @@ _XLEF_TIF_DATASETS: list[str] = [
                     {"path": str(XLEF_RAW_DIR / f"{name}" / f"{name}.xlef")}
                 ]
             },
-            XLEF_SNAPSHOT_DIR / f"{name}.yaml",
+            XLEF_SNAPSHOT_DIR / f"{name}.json",
             id=name,
         )
         for name in _XLEF_DATASETS
@@ -96,7 +95,7 @@ _XLEF_TIF_DATASETS: list[str] = [
                     {"path": str(XLEF_TIF_RAW_DIR / f"{name}" / f"{name}.xlef")}
                 ]
             },
-            XLEF_TIF_SNAPSHOT_DIR / f"{name}.yaml",
+            XLEF_TIF_SNAPSHOT_DIR / f"{name}.json",
             id=name,
         )
         for name in _XLEF_TIF_DATASETS
