@@ -1,0 +1,226 @@
+{
+  "images": {
+    "hcs_2w1p3c5z1t_TileScan_3_B_2.zarr": {
+      "axes": [
+        "c",
+        "z",
+        "y",
+        "x"
+      ],
+      "shape": [
+        3,
+        5,
+        512,
+        512
+      ],
+      "pixelsize": [
+        1.0,
+        3.3350025,
+        2.2794117647058822,
+        2.2794117647058822
+      ],
+      "channel_labels": [
+        "channel_0",
+        "channel_1",
+        "channel_2"
+      ],
+      "wavelength_ids": [
+        "channel_0",
+        "channel_1",
+        "channel_2"
+      ],
+      "types": {
+        "is_3D": true
+      },
+      "attributes": {},
+      "tables": {
+        "FOV_ROI_table": {
+          "rois": {
+            "FOV_0": {
+              "slice_repr": "[x: 0.0->256.0, y: 0.0->256.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 2.200465,
+                "std": 8.435307,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "31662a4b1cf62e995323786210dc8d6aab111b117c1ab5df6348b8a214c97c84"
+              },
+              "yx_origin": [
+                18324.7779,
+                22553.1497
+              ]
+            },
+            "FOV_1": {
+              "slice_repr": "[x: 256.0->512.0, y: 0.0->256.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 1.808724,
+                "std": 7.269146,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "19d63e3dc5a9d15d23fc68ca184e7b8856d8d97a19cbc98c9538e39e72dd79ce"
+              },
+              "yx_origin": [
+                18324.7779,
+                23076.2747
+              ]
+            },
+            "FOV_2": {
+              "slice_repr": "[x: 256.0->512.0, y: 256.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 1.608674,
+                "std": 7.106823,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "ecacb560f984a39c803588c02c9ec60dd3a9ba90ea862bb2e277f22c6e5f0493"
+              },
+              "yx_origin": [
+                18847.902900000005,
+                23076.2747
+              ]
+            },
+            "FOV_3": {
+              "slice_repr": "[x: 0.0->256.0, y: 256.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 1.862248,
+                "std": 7.828303,
+                "min": 0.0,
+                "max": 226.0,
+                "hash": "0847291ce376b5e91d8087aad5189ca7024d38385119e0e9b8ad7351d1317cd6"
+              },
+              "yx_origin": [
+                18847.902900000005,
+                22553.1497
+              ]
+            }
+          }
+        },
+        "well_ROI_table": {
+          "rois": {
+            "image": {
+              "slice_repr": "[x: 0.0->512.0, y: 0.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 1.870028,
+                "std": 7.680583,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "edefd08e6ddd8e9bceaefe85ffd91a2aba1feb5372f4e7bf0c30813a5a856459"
+              },
+              "yx_origin": null
+            }
+          }
+        }
+      }
+    },
+    "hcs_2w1p3c5z1t_TileScan_3_C_3.zarr": {
+      "axes": [
+        "c",
+        "z",
+        "y",
+        "x"
+      ],
+      "shape": [
+        3,
+        5,
+        512,
+        512
+      ],
+      "pixelsize": [
+        1.0,
+        3.3350025,
+        2.2794117647058822,
+        2.2794117647058822
+      ],
+      "channel_labels": [
+        "channel_0",
+        "channel_1",
+        "channel_2"
+      ],
+      "wavelength_ids": [
+        "channel_0",
+        "channel_1",
+        "channel_2"
+      ],
+      "types": {
+        "is_3D": true
+      },
+      "attributes": {},
+      "tables": {
+        "FOV_ROI_table": {
+          "rois": {
+            "FOV_0": {
+              "slice_repr": "[x: 0.0->256.0, y: 0.0->256.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 1.860346,
+                "std": 7.192684,
+                "min": 0.0,
+                "max": 245.0,
+                "hash": "0a0edc937fa8ce4a6c118b0f6e1aad4b4dcb3c1c36f206fd23e1e380cf1b86cf"
+              },
+              "yx_origin": [
+                27374.7781,
+                31603.149900000008
+              ]
+            },
+            "FOV_1": {
+              "slice_repr": "[x: 256.0->512.0, y: 0.0->256.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 2.290055,
+                "std": 7.474427,
+                "min": 0.0,
+                "max": 242.0,
+                "hash": "a9fb673739103bcbafd0f9fc11b73b0ff7b0a640b7692678e97041d5d712f5fd"
+              },
+              "yx_origin": [
+                27374.7781,
+                32126.274900000008
+              ]
+            },
+            "FOV_2": {
+              "slice_repr": "[x: 256.0->512.0, y: 256.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 2.928197,
+                "std": 9.329213,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "bf540be9719a453eb5be15f9f4bc39b8afdec38912623323b94f14c815c2b6d0"
+              },
+              "yx_origin": [
+                27897.9031,
+                32126.274900000008
+              ]
+            },
+            "FOV_3": {
+              "slice_repr": "[x: 0.0->256.0, y: 256.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 3.212493,
+                "std": 10.611323,
+                "min": 0.0,
+                "max": 246.0,
+                "hash": "ae8621add1932363ad57c87dd79ed0027563f33c5ed1a269850669e1fb888cbb"
+              },
+              "yx_origin": [
+                27897.9031,
+                31603.149900000008
+              ]
+            }
+          }
+        },
+        "well_ROI_table": {
+          "rois": {
+            "image": {
+              "slice_repr": "[x: 0.0->512.0, y: 0.0->512.0, z: 0.0->5.0]",
+              "finger_print": {
+                "mean": 2.572773,
+                "std": 8.78008,
+                "min": 0.0,
+                "max": 255.0,
+                "hash": "584783f2c44cc16397b14cbcf5c15cb1099d8897fa698798f841a00ebf594f10"
+              },
+              "yx_origin": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

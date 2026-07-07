@@ -1,10 +1,11 @@
 from pathlib import Path
 
 import pytest
+from ome_zarr_converters_tools.testing import run_converter_test
 
 from fractal_lif_converters import convert_lif_image
 
-from .utils import DATA_DIR, run_converter_test
+from .utils import DATA_DIR
 
 RAW_DIR = DATA_DIR / "Leica-LIF" / "raw"
 SNAPSHOT_DIR = DATA_DIR / "Leica-LIF" / "snapshots"
@@ -30,7 +31,7 @@ def test_lif_image(
         tmp_path=tmp_path,
         api_fn=convert_lif_image,
         api_kwargs=init_task_kwargs,
-        snapshot_path=SNAPSHOT_DIR / f"{snapshot_name}.yaml",
+        snapshot_path=SNAPSHOT_DIR / f"{snapshot_name}.json",
         update_snapshots=update_snapshots,
         converter_options=converter_options,
         output_type="single_image",
