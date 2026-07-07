@@ -41,7 +41,7 @@ The following image layout are supported:
 
 
 The names in curly braces `{}` can be freely chosen by the user. While
-the othe names must follow the following format:
+the other names must follow the following format:
 
 If the image is a multi-position image, the positions must be named `Position` followed by a space and a positive integer. Valid examples are `Position 1`, `Position 2`, `Position 3`, `Position 12` etc.
 

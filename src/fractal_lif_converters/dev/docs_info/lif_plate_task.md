@@ -71,9 +71,9 @@ The following plate layout are supported:
 
 The names in curly braces `{}` can be freely chosen by the user. 
 
-While the othe names must follow the following format:
+While the other names must follow the following format:
 
-* The well name must be a singe or duble letter followed by a positive integer.
+* The well name must be a single or double letter followed by a positive integer.
 Valid examples are `A1`, `A2`, `B1`, `AA1`, `AA12` etc.
 * Alternatively, the well can be hierarchically structured, for example `A/1`, `A/2`, `B/1`, `AA/1`, `AA/12` etc.
 * If the well is a multi-position well, the positions must be named `R` followed by a positive integer. Valid examples are `R1`, `R2`, `R3`, `R12` etc.

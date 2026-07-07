@@ -6,7 +6,7 @@ import re
 def validate_well_name_type1(well_name: str) -> tuple[bool, str, str]:
     """Validate well name for type 1 plate layout.
 
-    Well name must be a singe or duble letter followed by a positive integer.
+    Well name must be a single or double letter followed by a positive integer.
     Valid examples are `A1`, `A2`, `B1`, `AA1`, `AA12` etc.
     """
     match = re.match(r"([A-Z]+)(\d+)", well_name)
