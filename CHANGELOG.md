@@ -1,6 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.1]
+
+### Fix
+- Fix typos in the plate/image task docs and the `_string_validation` docstring (`single`/`double` letter, `other`) and in the conversion log message (`Successfully`); regenerate `__FRACTAL_MANIFEST__.json`.
+
+### Chores
+- Align repository tooling with `ome-zarr-converters-tools`: adopt its `.pre-commit-config.yaml` (`validate-pyproject` v0.25, `crate-ci/typos`, `astral-sh/ruff-pre-commit` v0.15.17, `nbstripout`) with a per-repo `_typos.toml`, add a `chores` pixi task, bump GitHub Actions pins (`checkout` v7, `codecov-action` v7, `action-gh-release` v3, `setup-python` v6), and add a terse `CLAUDE.md`.
+
+## [0.7.0]
 
 ### Breaking Changes
 - Rename the "single acquisition" converter to "image": the Fractal task `Convert Lif Scene to OME-Zarr` is now `Convert Lif Image to OME-Zarr`, the `lif_single` package is now `lif_image`, `LifSingleAcqAcquisitionModel` is now `LifImageAcquisitionModel`, and `convert_lif_single_acq_init_task` is now `convert_lif_image_init_task`.
