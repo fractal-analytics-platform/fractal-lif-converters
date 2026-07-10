@@ -146,19 +146,19 @@ def _make_acquisition_details_factory(
             )
         shape_t = lif_image.sizes.get("T", 1)
         details = AcquisitionDetails(
-            pixelsize=scale_x,
+            xy_pixel_size=scale_x,
             z_spacing=scale_z,
             t_spacing=1.0,
             channels=None,
             axes=default_axes_builder(is_time_series=shape_t > 1),
-            start_x_coo="world",
-            length_x_coo="pixel",
-            start_y_coo="world",
-            length_y_coo="pixel",
-            start_z_coo="pixel",
-            length_z_coo="pixel",
-            start_t_coo="pixel",
-            length_t_coo="pixel",
+            start_x_space="world",
+            length_x_space="pixel",
+            start_y_space="world",
+            length_y_space="pixel",
+            start_z_space="pixel",
+            length_z_space="pixel",
+            start_t_space="pixel",
+            length_t_space="pixel",
         )
         return acquisition_model.advanced.update_acquisition_details(
             acquisition_details=details
