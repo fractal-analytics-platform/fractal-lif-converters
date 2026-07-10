@@ -4,7 +4,7 @@ from typing import Any
 
 import liffile
 import numpy as np
-from ome_zarr_converters_tools.models._loader import ImageLoaderInterface
+from ome_zarr_converters_tools import ImageLoaderInterface
 
 # Canonical dimension order produced by this loader (excluding T which is
 # squeezed when T=1, or kept first when T>1).
