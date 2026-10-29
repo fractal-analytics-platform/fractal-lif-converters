@@ -71,6 +71,14 @@ dev = [
 test = ["pytest", "pytest-cov", "devtools", "jsonschema", "requests"]
 docs = ["mkdocs-material", "mike"]
 
+
+[project.urls]
+homepage = "https://github.com/fractal-analytics-platform/fractal-lif-converters"
+repository = "https://github.com/fractal-analytics-platform/fractal-lif-converters"
+documentation = "https://fractal-analytics-platform.github.io/fractal-lif-converters"
+changelog = "https://github.com/fractal-analytics-platform/fractal-lif-converters/blob/main/CHANGELOG.md"
+
+
 # https://docs.astral.sh/ruff
 [tool.ruff]
 line-length = 88
