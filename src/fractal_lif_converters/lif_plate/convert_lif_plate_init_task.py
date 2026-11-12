@@ -6,6 +6,7 @@ from pathlib import Path
 from ome_zarr_converters_tools import (
     ConverterOptions,
     OverwriteMode,
+    StagePositionCorrections,
     setup_images_for_conversion,
 )
 from pydantic import Field, model_validator, validate_call
@@ -20,7 +21,12 @@ from fractal_lif_converters.lif_plate._parser import parse_lif_plate_metadata
 logger = logging.getLogger("convert_lif_plate_task")
 
 
-default_converter_options = ConverterOptions()
+# LIF tiles are multi-channel (length_c == number of channels), so the v1 default
+# `reindex_channels=True` — which assumes one channel per tile — is incompatible and
+# would raise at compute time. Disable it: LIF channel indices are already dense.
+default_converter_options = ConverterOptions(
+    stage_position_corrections=StagePositionCorrections(reindex_channels=False)
+)
 
 
 class LifPlateAcquisitionModel(BaseAcquisitionModel):

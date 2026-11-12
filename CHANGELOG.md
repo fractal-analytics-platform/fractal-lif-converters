@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased]
+
+### API Breaking Changes
+- Adopt `ome-zarr-converters-tools>=1.0.0,<2.0.0` (was `>=0.10.4,<0.11.0`).
+- **Default table backend changed from `anndata` to `csv`.** The conversion tasks ship
+  `ConverterOptions()` with v1 defaults, so the well/image table format written by real
+  conversions is now CSV. Pipelines that consumed the previous AnnData tables must be
+  updated (or set the table backend explicitly).
+
+### Fix
+- Disable `reindex_channels` (new v1 default `True`) in the shipped converter options.
+  LIF builds multi-channel tiles (`length_c == number of channels`), but
+  `reindex_channels` assumes one channel per tile and raised
+  `ValueError: reindex_channels requires single-channel tiles` at compute time for every
+  multi-channel image. LIF channel indices are already dense, so reindexing is
+  unnecessary.
+
+### Chores
+- Migrate to the v1 `ome-zarr-converters-tools` API:
+  - `AcquisitionDetails(pixelsize=...)` → `xy_pixel_size=...`; the coordinate-system
+    fields `start_/length_{x,y,z,t}_coo` → `..._space` (values unchanged) in both parsers.
+  - Import `ImageLoaderInterface` and `BackendType` from the package root instead of
+    private submodules.
+  - Regenerate `__FRACTAL_MANIFEST__.json` for the v1 schema (grouping/tiling split,
+    `align_*` → `remove_*`/`remove_xy_jitter`/`reindex_channels`, scheduler `type` → `mode`,
+    `csv` table-backend default).
+- Note: the new `remove_xy_jitter` default (`True`) is a no-op for LIF (one tile per FOV);
+  existing snapshots are unchanged (shipped test datasets are single-position, so the v1
+  region-origin/pixel-grid mosaic fixes do not alter their output).
+
 ## [0.7.1]
 
 ### Fix
